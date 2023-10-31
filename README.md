@@ -1,3 +1,5 @@
 # sogang-CSE2035-project
-# No More Double
-# Hello World!
+team name: no more double
+
+You need libpng.
+`pacman -S libpng`
