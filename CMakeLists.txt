@@ -6,5 +6,7 @@ find_library(png
 )
 
 SUBDIRS (
-	libpng-demo
+	examples
+	external-examples
+	img2ascii
 )
