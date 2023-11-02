@@ -28,6 +28,7 @@ int main(int argc, char *argv[]) {
 	png_image image;
 	memset(&image, 0, sizeof(image));
 	image.version = PNG_IMAGE_VERSION;
+	image.opaque = NULL;
 	if (png_image_begin_read_from_file(&image, argv[1])) {
 		png_bytep buffer;
 		image.format = PNG_FORMAT_RGBA;
