@@ -5,3 +5,9 @@ team name: no more double
 
 You need libpng, ncurses.
 `pacman -S libpng ncurses`
+
+# How to build
+1. `mkdir build`
+2. `cd build`
+3. `cmake ..`
+4. `make`
