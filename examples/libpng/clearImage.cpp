@@ -15,13 +15,13 @@ int main(int argc, char* argv[]) {
     return -1;
   }
   std::string inputFile = argv[1];
-  std::string outputFile = "clear-" + inputFile;
   FILE* inputImage = fopen(inputFile.c_str(), "rb");
 
   if (!inputImage) {
     std::cout << "Open Image Failed." << std::endl;
     return -2;
   }
+
   unsigned char* header = (unsigned char*)malloc(sizeof(unsigned char) * 8);
   fread(header, 1, 8, inputImage);
   bool isPng = !png_sig_cmp(header, 0, 8);
@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
 
   png_structp pngPtr =
       png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-  png_bytep row = NULL;
+
   if (pngPtr != NULL) {
     png_infop infoPtr = png_create_info_struct(pngPtr);
     if (infoPtr != NULL) {
@@ -66,6 +66,7 @@ int main(int argc, char* argv[]) {
             }
           }
 
+          std::string outputFile = "clear-" + inputFile;
           FILE *outputImage = fopen(outputFile.c_str(), "wb");
           if (!outputImage) {
             std::cout << "Could not open output file" << std::endl;
