@@ -5,6 +5,10 @@ find_library(png
 	NAMES libpng
 )
 
+find_library(curses
+	NAMES ncurses
+)
+
 SUBDIRS (
 	examples
 	external-examples
