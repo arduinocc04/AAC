@@ -3,6 +3,8 @@
 
 #include <png.h>
 
+#include <ncurses.h>
+
 struct Pixel {
   png_byte r, g, b, a;
 };
@@ -13,7 +15,6 @@ int main(int argc, char* argv[]) {
     return -1;
   }
   std::string inputFile = argv[1];
-  std::string outputFile = "gray-" + inputFile;
   FILE* inputImage = fopen(inputFile.c_str(), "rb");
 
   if (!inputImage) {
@@ -55,46 +56,36 @@ int main(int argc, char* argv[]) {
             rowPointers[i] = (Pixel*)malloc(width*sizeof(Pixel));
           }
           png_read_image(pngPtr, (png_bytepp)rowPointers);
+          png_bytepp gray = (png_bytepp)malloc(sizeof(png_bytep)*height);
+          for(int i = 0; i < height; i++) {
+            gray[i] = (png_bytep)malloc(sizeof(png_byte)*width);
+          }
           for(int i = 0; i < height; i++) {
             for(int j = 0; j < width; j++) {
-                png_byte gray = (rowPointers[i][j].r + rowPointers[i][j].g + rowPointers[i][j].b)/3;
-                rowPointers[i][j].r = gray;
-                rowPointers[i][j].g = gray;
-                rowPointers[i][j].b = gray;
+                gray[i][j] = (rowPointers[i][j].r + rowPointers[i][j].g + rowPointers[i][j].b)/3;
             }
           }
-
-          FILE *outputImage = fopen(outputFile.c_str(), "wb");
-          if (!outputImage) {
-            std::cout << "Could not open output file" << std::endl;
-            return -4;
+          initscr();
+          for(int i = 0; i < height; i++) {
+            for(int j = 0; j < width; j++) {
+                if(gray[i][j] > 200) {
+                    mvprintw(i, j, "#");
+                }
+                else if(gray[i][j] > 150) {
+                    mvprintw(i, j, "o");
+                }
+                else if(gray[i][j] > 100) {
+                    mvprintw(i, j, "^");
+                }
+                else if(gray[i][j] > 50) {
+                    mvprintw(i, j, ".");
+                }
+            }
+            std::cout << std::endl;
           }
-
-          png_structp outPtr;
-          outPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-          if(!outPtr) {
-            std::cout << "Could not initialize output png struct" << std::endl;
-            return -5;
-          }
-          
-          png_infop outInfoPtr;
-          outInfoPtr = png_create_info_struct(outPtr);
-          if(!outInfoPtr) {
-            png_destroy_write_struct(&outPtr, (png_infopp)NULL);
-            std::cout << "Could not initialize output png info struct" << std::endl;
-            return -6;
-          }
-
-          png_init_io(outPtr, outputImage);
-          png_set_IHDR(outPtr, outInfoPtr, width, height, bitDepth, colorType, interlaceMethod, compressionMethod, filterMethod);
-          png_write_info(outPtr, outInfoPtr);
-          png_set_rgb_to_gray(outPtr, 1, -1, -1);
-          png_write_image(outPtr, (png_byte **)rowPointers);
-          png_write_end(outPtr, NULL);
-          png_destroy_write_struct(&outPtr, &outInfoPtr);
-
-          fclose(outputImage);
-          outputImage = NULL;
+          refresh();
+          getch();
+          endwin();
         }
         else
           png_error(pngPtr, "pngpixel: png_get_IHDR failed");
