@@ -6,6 +6,10 @@ team name: no more double
 You need libpng, ncurses.
 `pacman -S libpng ncurses`
 
+Optionally, for documentation, You need doxygen.
+`pacman -S doxygen`
+`cd doc && doxygen doxy.conf`
+
 # How to build
 1. `mkdir build`
 2. `cd build`
