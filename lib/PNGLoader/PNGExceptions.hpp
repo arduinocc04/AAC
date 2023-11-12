@@ -10,30 +10,23 @@
 #include <exception>
 
 namespace eg::exceptions { // You need C++17
-class FileNotFound: public std::exception {
-} FileNotFound;
+class FileNotFound: public std::exception {};
 
-class InvalidFormat: public std::exception {
-} InvalidFormat;
+class InvalidFormat: public std::exception {};
 
 /**
  * @brief failed to create png_structp
  */
-class StructpGenFailed: public std::exception {
-} StructpGenFailed;
+class StructpGenFailed: public std::exception {};
 
 /**
  * @brief failed to create png_infop
  */
-class InfopGenFailed: public std::exception {
-} InfopGenFailed;
+class InfopGenFailed: public std::exception {};
 
-class SetjmpFailed: public std::exception {
-} SetjmpFailed;
+class SetjmpFailed: public std::exception {};
 
-class GetMetadataFailed: public std::exception {
-} GetMetadataFailed;
+class GetMetadataFailed: public std::exception {};
 
-class ReadImageFailed: public std::exception {
-} ReadImageFailed;
+class ReadImageFailed: public std::exception {};
 }
