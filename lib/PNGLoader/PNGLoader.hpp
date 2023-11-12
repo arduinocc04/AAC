@@ -20,6 +20,7 @@ struct PNGInfo {
     png_uint_32 width, height;
     int bitDepth, colorType, interlaceMethod,
         compressionMethod, filterMethod;
+    bool initialized;
 };
 
 using Image = Pixel **;
@@ -46,7 +47,6 @@ public:
 
     PNG();
     ~PNG();
-
     /**
      * @brief open png image at given path.
      *
