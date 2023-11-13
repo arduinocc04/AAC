@@ -94,7 +94,7 @@ void eg::PNG::cvtGrayMean() {
     for(int i = 0; i < info.height; i++) {
         for(int j = 0; j < info.width; j++) {
             Pixel * p = &image[i][j];
-            png_byte mean = (p->r + p->g + p->b)/3; // May overflow? ceil? floor? round?
+            int mean = (p->r + p->g + p->b)/3;
             p->r = p->g = p->b = mean;
         }
     }
