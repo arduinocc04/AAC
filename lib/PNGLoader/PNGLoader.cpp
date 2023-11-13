@@ -1,7 +1,6 @@
 #include "PNGLoader.hpp"
 #define PNG_HEAD_BYTE 4
 
-#include <iostream>
 eg::PNG::PNG() {
     info.initialized = false;
     pngStructp = nullptr;
@@ -9,7 +8,7 @@ eg::PNG::PNG() {
 };
 
 eg::PNG::~PNG() {
-    if(!image) {
+    if(image) {
         if(info.initialized) {
             for(int i = 0; i < info.height; i++) {
                 delete image[i];
@@ -18,9 +17,9 @@ eg::PNG::~PNG() {
         delete image;
     }
 
-    if(!fimage) fclose(fimage);
+    if(fimage) fclose(fimage);
 
-    if(!pngStructp)
+    if(pngStructp)
         png_destroy_read_struct(&pngStructp,
                                 NULL, NULL
         );
@@ -87,6 +86,66 @@ void eg::PNG::openImage(std::string _inputPath) {
     png_read_image(pngStructp, (png_bytepp)image);
 
     if(!image) throw exceptions::ReadImageFailed();
+}
+
+void eg::PNG::cvtGrayMean() {
+    if(!info.initialized || !image)
+        throw exceptions::ImageNotOpened();
+    for(int i = 0; i < info.height; i++) {
+        for(int j = 0; j < info.width; j++) {
+            Pixel * p = &image[i][j];
+            int mean = (p->r + p->g + p->b)/3;
+            p->r = p->g = p->b = mean;
+        }
+    }
+}
+
+void eg::PNG::cvtGray(int method) {
+    if(!info.initialized)
+        throw exceptions::GetMetadataFailed();
+    if(info.colorType != PNG_COLOR_TYPE_RGB_ALPHA)
+        throw exceptions::InvalidFormat();
+    switch(method) {
+        case grayCvtMethod::mean:
+            cvtGrayMean();
+            break;
+        default:
+            throw exceptions::InvalidParameter();
+            break;
+    }
+}
+
+void eg::PNG::saveImage(std::string _outputPath) {
+    outputPath = _outputPath;
+    FILE * foutImage = fopen(outputPath.c_str(), "wb");
+
+    if(!foutImage) exceptions::FileNotFound();
+
+    png_structp opngStructp =
+        png_create_write_struct(PNG_LIBPNG_VER_STRING,
+                                NULL, NULL, NULL);
+    if(!opngStructp)
+        throw exceptions::StructpGenFailed();
+
+    png_infop oInfop =
+        png_create_info_struct(opngStructp);
+    if(!oInfop) throw exceptions::InfopGenFailed();
+
+    png_init_io(opngStructp, foutImage);
+
+    if(!info.initialized)
+        throw exceptions::GetMetadataFailed();
+    png_set_IHDR(opngStructp, oInfop, info.width,
+                 info.height, info.bitDepth,
+                 info.colorType, info.interlaceMethod,
+                 info.compressionMethod,
+                 info.filterMethod);
+    png_write_info(opngStructp, oInfop);
+    png_write_image(opngStructp, (png_byte **)image);
+    png_write_end(opngStructp, NULL);
+    png_destroy_write_struct(&opngStructp, &oInfop);
+
+    fclose(foutImage);
 }
 
 eg::Image * eg::PNG::getImage() {

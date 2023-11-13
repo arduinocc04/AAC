@@ -23,6 +23,13 @@ struct PNGInfo {
     bool initialized;
 };
 
+/**
+ * @enum eg::grayCvtMethod
+ */
+enum grayCvtMethod {
+    mean
+};
+
 using Image = Pixel **;
 
 /**
@@ -42,6 +49,11 @@ private:
 
     bool isPNG();
     bool getMetadata();
+
+    /**
+     * @brief convert rgba image to grayscale by average pixel values
+     */
+    void cvtGrayMean();
 public:
     PNGInfo info;
 
@@ -74,7 +86,24 @@ public:
     Image * getImage();
 
     /**
-     * @todo Implement.
+     * @brief convert opened image to grayscale.
+     * @attention you need open image before call this function. Call this method will change opened image.
+     * @param method an integer
+     * @see eg::PNG::cvtGrayMean
+     * @see eg::grayCvtMethod
+     * @throws GetMetadataFailed
+     * @throws InvalidFormat
+     * @throws InvalidParameter
+     */
+    void cvtGray(int method);
+
+    /**
+     * @brief save opened image.
+     * @param _outputPath a string
+     * @throws FileNotFound
+     * @throws StructpGenFailed
+     * @throws InfopGenFailed
+     * @throws GetMetadataFailed
      */
     void saveImage(std::string _outputPath);
 
