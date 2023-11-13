@@ -8,7 +8,7 @@ eg::PNG::PNG() {
 };
 
 eg::PNG::~PNG() {
-    if(!image) {
+    if(image) {
         if(info.initialized) {
             for(int i = 0; i < info.height; i++) {
                 delete image[i];
@@ -17,9 +17,9 @@ eg::PNG::~PNG() {
         delete image;
     }
 
-    if(!fimage) fclose(fimage);
+    if(fimage) fclose(fimage);
 
-    if(!pngStructp)
+    if(pngStructp)
         png_destroy_read_struct(&pngStructp,
                                 NULL, NULL
         );
