@@ -6,8 +6,9 @@ int main(int argc, char * argv[]) {
         std::cout << "Use program properly!" << std::endl;
         return -1;
     }
-    eg::PNG png;
-    png.openImage(argv[1]);
-    png.cvtGray(eg::grayCvtMethod::mean);
-    png.saveImage("gray-" + std::string(argv[1]));
+    eg::PNG * png = new eg::PNG;
+    png->openImage(argv[1]);
+    png->cvtGray(eg::grayCvtMethod::mean);
+    png->saveImage("gray-" + std::string(argv[1]));
+    delete png;
 }
