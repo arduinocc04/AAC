@@ -8,7 +8,13 @@
  */
 #include <png.h>
 #include <string>
+
+#include "unsupported/Eigen/CXX11/Tensor"
+
+#ifndef __PNGEXCEPTIONS_H
 #include "PNGExceptions.hpp"
+#endif
+#define __PNGEXCEPTIONS_H
 
 namespace eg {
 
@@ -30,8 +36,21 @@ enum grayCvtMethod {
     mean
 };
 
-using Image = Pixel **;
+/**
+ * @enum eg::edgeDetectMethod
+ */
+enum edgeDetectMethod {
+    gradient
+};
 
+/**
+ * @enum eg::blurMethod
+ */
+enum blurMethod {
+    gaussian
+};
+
+using Image = Eigen::Tensor<png_byte, 3>;
 /**
  * @class PNG
  * @author Daniel Cho
@@ -41,19 +60,30 @@ using Image = Pixel **;
 class PNG {
 private:
     Image image;
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> playground;
     std::string inputPath;
     std::string outputPath;
     FILE * fimage;
     png_structp pngStructp;
     png_infop pngInfop;
+    struct Pixel ** buffer;
 
     bool isPNG();
     bool getMetadata();
 
+    void allocBuffer();
+    void freeBuffer();
+    void allocPlayground();
+    void allocImage();
+    void copyBufferToImage();
+    void copyImageToBuffer();
+    void copyImageToPlayground();
+    void readImageBuffer(std::string _inputPath);
     /**
      * @brief convert rgba image to grayscale by average pixel values
      */
     void cvtGrayMean();
+    void getEdgeGrad();
 public:
     PNGInfo info;
 
@@ -117,6 +147,12 @@ public:
      * @return Image pointer
      */
     Image * copy();
+
+    /**
+     * @brief get Edge of image.
+     * @attention This will change opened image.
+     */
+    void getEdge(int method);
 };
 
 }

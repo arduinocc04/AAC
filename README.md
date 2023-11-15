@@ -3,8 +3,8 @@ team name: no more double
 - 20231610 조다니엘
 - 20221558 박준영
 
-You need libpng, ncurses.
-`pacman -S libpng ncurses`
+You need libpng, ncurses, eigen.
+`pacman -S libpng ncurses eigen`
 
 Optionally, for documentation, You need doxygen.
 `pacman -S doxygen`

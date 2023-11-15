@@ -33,4 +33,6 @@ class ReadImageFailed: public std::exception {};
 class ImageNotOpened: public std::exception {};
 
 class InvalidParameter: public std::exception {};
+
+class BufferNotNull: public std::exception {};
 }

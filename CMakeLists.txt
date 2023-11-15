@@ -11,6 +11,8 @@ find_library(curses
 	NAMES ncurses
 )
 
+find_package(Eigen3 3.3 REQUIRED)
+
 SUBDIRS (
     lib
 	examples
