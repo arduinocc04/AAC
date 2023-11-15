@@ -1,9 +1,11 @@
 #include "PNGLoader.hpp"
 #define PNG_HEAD_BYTE 4
+#include <iostream>
 
 eg::PNG::PNG() {
     info.initialized = false;
     pngStructp = nullptr;
+    buffer = nullptr;
     pngInfop = nullptr;
 };
 
@@ -41,7 +43,7 @@ bool eg::PNG::isPNG() {
 }
 
 void eg::PNG::allocPlayground() {
-    playground = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(info.height, info.width);
+    playground = Eigen::Tensor<double, 2>(info.height, info.width);
 }
 
 void eg::PNG::allocBuffer() {
@@ -65,7 +67,6 @@ void eg::PNG::allocImage() {
 void eg::PNG::copyImageToPlayground() {
     for(int i = 0; i < info.height; i++)
         for(int j = 0; j < info.width; j++)
-            // playground(i, j) = (image(i, j, 0) + image(i, j, 1) + image(i, j, 2))/3;
             playground(i, j) = image(i, j, 0); // Because we will grayscale image.
 }
 
@@ -132,36 +133,6 @@ void eg::PNG::openImage(std::string _inputPath) {
     if(!image.data()) throw exceptions::ReadImageFailed();
 }
 
-void eg::PNG::cvtGrayMean() {
-    if(!info.initialized || !image.data())
-        throw exceptions::ImageNotOpened();
-
-    for(int i = 0; i < info.height; i++) {
-        for(int j = 0; j < info.width; j++) {
-            int mean = 0;
-            for(int k = 0; k < 3; k++)
-                mean += image(i, j, k);
-            mean /= 3;
-            image(i, j, 0) = image(i, j, 1) = image(i, j, 2) = mean;
-        }
-    }
-}
-
-void eg::PNG::cvtGray(int method) {
-    if(!info.initialized)
-        throw exceptions::GetMetadataFailed();
-    if(info.colorType != PNG_COLOR_TYPE_RGB_ALPHA)
-        throw exceptions::InvalidFormat();
-    switch(method) {
-        case grayCvtMethod::mean:
-            cvtGrayMean();
-            break;
-        default:
-            throw exceptions::InvalidParameter();
-            break;
-    }
-}
-
 void eg::PNG::saveImage(std::string _outputPath) {
     outputPath = _outputPath;
     FILE * foutImage = fopen(outputPath.c_str(), "wb");
@@ -201,6 +172,21 @@ void eg::PNG::saveImage(std::string _outputPath) {
 
 eg::Image * eg::PNG::getImage() {
     return &image;
+}
+
+int roundToInt(double x) {
+    return (int)(x + 0.5 -(x < 0));
+}
+
+void eg::PNG::copyPlaygroundToImage() {
+    for(int i = 0; i < info.height; i++) {
+        for(int j = 0; j < info.width; j++) {
+            for(int k = 0; k < 3; k++) {
+                image(i, j, k) = roundToInt(playground(i, j));
+            }
+            image(i, j, 3) = 255;
+        }
+    }
 }
 
 eg::Image * eg::PNG::copy() {

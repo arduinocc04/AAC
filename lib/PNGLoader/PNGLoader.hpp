@@ -9,12 +9,22 @@
 #include <png.h>
 #include <string>
 
+#ifndef __TENSOR
 #include "unsupported/Eigen/CXX11/Tensor"
+#endif
+#define __TENSOR
 
 #ifndef __PNGEXCEPTIONS_H
 #include "PNGExceptions.hpp"
 #endif
 #define __PNGEXCEPTIONS_H
+
+#ifndef __PNGMATH_H
+#include "PNGMath.hpp"
+#endif
+#define __PNGMATH_H
+
+#include "PNGMethods.hpp"
 
 namespace eg {
 
@@ -29,27 +39,6 @@ struct PNGInfo {
     bool initialized;
 };
 
-/**
- * @enum eg::grayCvtMethod
- */
-enum grayCvtMethod {
-    mean
-};
-
-/**
- * @enum eg::edgeDetectMethod
- */
-enum edgeDetectMethod {
-    gradient
-};
-
-/**
- * @enum eg::blurMethod
- */
-enum blurMethod {
-    gaussian
-};
-
 using Image = Eigen::Tensor<png_byte, 3>;
 /**
  * @class PNG
@@ -58,32 +47,6 @@ using Image = Eigen::Tensor<png_byte, 3>;
  * @version 0.0.1
  */
 class PNG {
-private:
-    Image image;
-    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> playground;
-    std::string inputPath;
-    std::string outputPath;
-    FILE * fimage;
-    png_structp pngStructp;
-    png_infop pngInfop;
-    struct Pixel ** buffer;
-
-    bool isPNG();
-    bool getMetadata();
-
-    void allocBuffer();
-    void freeBuffer();
-    void allocPlayground();
-    void allocImage();
-    void copyBufferToImage();
-    void copyImageToBuffer();
-    void copyImageToPlayground();
-    void readImageBuffer(std::string _inputPath);
-    /**
-     * @brief convert rgba image to grayscale by average pixel values
-     */
-    void cvtGrayMean();
-    void getEdgeGrad();
 public:
     PNGInfo info;
 
@@ -117,7 +80,7 @@ public:
 
     /**
      * @brief convert opened image to grayscale.
-     * @attention you need open image before call this function. Call this method will change opened image.
+     * @attention you need open image before call this function. Call this method will change playground and opened image.
      * @param method an integer
      * @see eg::PNG::cvtGrayMean
      * @see eg::grayCvtMethod
@@ -149,10 +112,83 @@ public:
     Image * copy();
 
     /**
-     * @brief get Edge of image.
-     * @attention This will change opened image.
+     * @brief get Edge of playground.
+     * @attention This will change playground and opened image.
      */
     void getEdge(int method);
+
+    /**
+     * @brief blur playground.
+     * @attention This will change playground and opened image
+     */
+    void blur(int method);
+private:
+    Image image;
+    Eigen::Tensor<double, 2> playground;
+    std::string inputPath;
+    std::string outputPath;
+    FILE * fimage;
+    png_structp pngStructp;
+    png_infop pngInfop;
+    struct Pixel ** buffer;
+
+    bool isPNG();
+    bool getMetadata();
+
+    /**
+     * @attention to call this function, buffer must nullptr
+     * @see eg::PNG::freeBuffer
+     */
+    void allocBuffer();
+    void freeBuffer();
+
+    /**
+     * @attention calling this function will overwrite data
+     */
+    void allocPlayground();
+
+    /**
+     * @attention calling this function will overwrite data
+     */
+    void allocImage();
+
+    /**
+     * @attention to call this function, you must allocate image
+     * @see eg::PNG::allocImage
+     */
+    void copyBufferToImage();
+
+    /**
+     * @attention to call this function, you must allocate buffer
+     * @see eg::PNG::allocBuffer
+     */
+    void copyImageToBuffer();
+
+    /**
+     * @attention to call this function, you must allocate playground
+     * @see eg::PNG::allocPlayground
+     */
+    void copyImageToPlayground();
+
+    /**
+     * @attention to call this function, you must allocate image
+     * @see eg::PNG::allocImage
+     */
+    void copyPlaygroundToImage();
+
+    /**
+     * @attention this will overwrite inputPath, fimage, pngStructp, pngInfop, info, buffer
+     * @attention After call this, please copy buffer to image
+     * @see eg::PNG::copyBufferToImage
+     */
+    void readImageBuffer(std::string _inputPath);
+
+    /**
+     * @brief convert rgba image to grayscale by average pixel values
+     */
+    void cvtGrayMean();
+    void getEdgeGrad();
+    void blurGaussian();
 };
 
 }
