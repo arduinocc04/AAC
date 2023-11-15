@@ -4,7 +4,7 @@ team name: no more double
 - 20221558 박준영
 
 You need libpng, ncurses, eigen.
-`pacman -S libpng ncurses, eigen`
+`pacman -S libpng ncurses eigen`
 
 Optionally, for documentation, You need doxygen.
 `pacman -S doxygen`
