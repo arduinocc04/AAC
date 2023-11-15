@@ -8,15 +8,6 @@ eg::PNG::PNG() {
 };
 
 eg::PNG::~PNG() {
-    if(image) {
-        if(info.initialized) {
-            for(int i = 0; i < info.height; i++) {
-                delete image[i];
-            }
-        }
-        delete image;
-    }
-
     if(fimage) fclose(fimage);
 
     if(pngStructp)
@@ -33,8 +24,7 @@ bool eg::PNG::getMetadata() {
                      &info.interlaceMethod,
                      &info.compressionMethod,
                      &info.filterMethod);
-    info.initialized = success;
-    return success;
+    return info.initialized = success;
 }
 
 bool eg::PNG::isPNG() {
@@ -50,7 +40,58 @@ bool eg::PNG::isPNG() {
     return ans;
 }
 
-void eg::PNG::openImage(std::string _inputPath) {
+void eg::PNG::allocPlayground() {
+    playground = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(info.height, info.width);
+}
+
+void eg::PNG::allocBuffer() {
+    if(buffer) throw exceptions::BufferNotNull();
+    buffer = new Pixel * [info.height];
+    for(int i = 0; i < info.height; i++) {
+        buffer[i] = new Pixel[info.width];
+    }
+}
+
+void eg::PNG::freeBuffer() {
+    for(int i = 0; i < info.height; i++) delete buffer[i];
+    delete buffer;
+    buffer = nullptr;
+}
+
+void eg::PNG::allocImage() {
+    image = Eigen::Tensor<png_byte, 3>(info.height, info.width, 4);
+}
+
+void eg::PNG::copyImageToPlayground() {
+    for(int i = 0; i < info.height; i++)
+        for(int j = 0; j < info.width; j++)
+            // playground(i, j) = (image(i, j, 0) + image(i, j, 1) + image(i, j, 2))/3;
+            playground(i, j) = image(i, j, 0); // Because we will grayscale image.
+}
+
+void eg::PNG::copyBufferToImage() {
+    for(int i = 0; i < info.height; i++) {
+        for(int j = 0; j < info.width; j++) {
+            image(i, j, 0) = buffer[i][j].r;
+            image(i, j, 1) = buffer[i][j].g;
+            image(i, j, 2) = buffer[i][j].b;
+            image(i, j, 3) = buffer[i][j].a;
+        }
+    }
+}
+
+void eg::PNG::copyImageToBuffer() {
+    for(int i = 0; i < info.height; i++) {
+        for(int j = 0; j < info.width; j++) {
+            buffer[i][j].r = image(i, j, 0);
+            buffer[i][j].g = image(i, j, 1);
+            buffer[i][j].b = image(i, j, 2);
+            buffer[i][j].a = image(i, j, 3);
+        }
+    }
+}
+
+void eg::PNG::readImageBuffer(std::string _inputPath) {
     inputPath = _inputPath;
     fimage = fopen(inputPath.c_str(), "rb");
 
@@ -79,23 +120,29 @@ void eg::PNG::openImage(std::string _inputPath) {
     if(!getMetadata())
         throw exceptions::GetMetadataFailed();
 
-    image = new Pixel * [info.height];
-    for(int i = 0; i < info.height; i++) {
-        image[i] = new Pixel[info.width];
-    }
-    png_read_image(pngStructp, (png_bytepp)image);
+    allocBuffer();
+    png_read_image(pngStructp, (png_bytepp)buffer);
+}
 
-    if(!image) throw exceptions::ReadImageFailed();
+void eg::PNG::openImage(std::string _inputPath) {
+    readImageBuffer(_inputPath);
+    allocImage();
+    copyBufferToImage();
+    freeBuffer();
+    if(!image.data()) throw exceptions::ReadImageFailed();
 }
 
 void eg::PNG::cvtGrayMean() {
-    if(!info.initialized || !image)
+    if(!info.initialized || !image.data())
         throw exceptions::ImageNotOpened();
+
     for(int i = 0; i < info.height; i++) {
         for(int j = 0; j < info.width; j++) {
-            Pixel * p = &image[i][j];
-            int mean = (p->r + p->g + p->b)/3;
-            p->r = p->g = p->b = mean;
+            int mean = 0;
+            for(int k = 0; k < 3; k++)
+                mean += image(i, j, k);
+            mean /= 3;
+            image(i, j, 0) = image(i, j, 1) = image(i, j, 2) = mean;
         }
     }
 }
@@ -141,7 +188,11 @@ void eg::PNG::saveImage(std::string _outputPath) {
                  info.compressionMethod,
                  info.filterMethod);
     png_write_info(opngStructp, oInfop);
-    png_write_image(opngStructp, (png_byte **)image);
+
+    allocBuffer();
+    copyImageToBuffer();
+    png_write_image(opngStructp, (png_bytepp)buffer);
+    freeBuffer();
     png_write_end(opngStructp, NULL);
     png_destroy_write_struct(&opngStructp, &oInfop);
 
@@ -153,19 +204,11 @@ eg::Image * eg::PNG::getImage() {
 }
 
 eg::Image * eg::PNG::copy() {
-    Image res = new Pixel * [info.height];
-    for(int i = 0; i < info.height; i++) {
-        res[i] = new Pixel[info.width];
-    }
-
-    for(int i = 0; i < info.height; i++) {
-        for(int j = 0; j < info.width; j++) {
-            res[i][j].r = image[i][j].r;
-            res[i][j].g = image[i][j].g;
-            res[i][j].b = image[i][j].b;
-            res[i][j].a = image[i][j].a;
-        }
-    }
+    Image res = Eigen::Tensor<png_byte, 3>(info.height, info.width, 4);
+    for(int i = 0; i < info.height; i++)
+        for(int j = 0; j < info.width; j++)
+            for(int k = 0; k < 4; k++)
+                res(i, j, k) = image(i, j, k);
 
     return &res;
 }
