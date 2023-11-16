@@ -174,15 +174,11 @@ eg::Image * eg::PNG::getImage() {
     return &image;
 }
 
-int roundToInt(double x) {
-    return (int)(x + 0.5 -(x < 0));
-}
-
 void eg::PNG::copyPlaygroundToImage() {
     for(int i = 0; i < info.height; i++) {
         for(int j = 0; j < info.width; j++) {
             for(int k = 0; k < 3; k++) {
-                image(i, j, k) = roundToInt(playground(i, j));
+                image(i, j, k) = std::round(playground(i, j));
             }
             image(i, j, 3) = 255;
         }

@@ -5,7 +5,7 @@ Eigen::Tensor<double, 2> eg::math::conv(Eigen::Tensor<double, 2> & input, Eigen:
     int ky = kernel.dimensions()[1];
     int h = input.dimensions()[0];
     int w = input.dimensions()[1];
-    if((kx%2)*(ky%2) == 0) // shape of kernel must odd * odd.
+    if((kx % 2 == 0) || (ky % 2 == 0)) // shape of kernel must odd * odd.
         throw eg::exceptions::InvalidParameter();
 
     Eigen::Tensor<double, 2> out(h, w);
