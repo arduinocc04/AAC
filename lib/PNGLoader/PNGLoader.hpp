@@ -6,8 +6,10 @@
  * @date 2023.11.12
  * @version 0.0.1
  */
-#include <png.h>
 #include <string>
+#include <cmath>
+
+#include <png.h>
 
 #ifndef __TENSOR
 #include "unsupported/Eigen/CXX11/Tensor"
