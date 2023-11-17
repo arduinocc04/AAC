@@ -1,6 +1,5 @@
 #include "PNGLoader.hpp"
-#define PNG_HEAD_BYTE 4
-#include <iostream>
+#define PNG_HEAD_BYTE 8
 
 eg::PNG::PNG() {
     info.initialized = false;
@@ -10,8 +9,6 @@ eg::PNG::PNG() {
 };
 
 eg::PNG::~PNG() {
-    if(fimage) fclose(fimage);
-
     if(pngStructp)
         png_destroy_read_struct(&pngStructp,
                                 NULL, NULL
@@ -123,6 +120,17 @@ void eg::PNG::readImageBuffer(std::string _inputPath) {
 
     allocBuffer();
     png_read_image(pngStructp, (png_bytepp)buffer);
+
+    if(info.colorType == PNG_COLOR_TYPE_RGB) {
+        info.colorType = PNG_COLOR_TYPE_RGB_ALPHA;
+        for(int i = 0; i < info.height; i++) {
+            for(int j = 0; j < info.width; j++) {
+                buffer[i][j].a = 255;
+            }
+        }
+    }
+
+    fclose(fimage);
 }
 
 void eg::PNG::openImage(std::string _inputPath) {
@@ -193,4 +201,33 @@ eg::Image * eg::PNG::copy() {
                 res(i, j, k) = image(i, j, k);
 
     return &res;
+}
+
+void eg::PNG::dividePlaygroundByLength(int _gridHeight, int _gridWidth) {
+    if(!info.initialized || !image.data())
+        throw exceptions::ImageNotOpened();
+    gridWidth = _gridWidth, gridHeight = _gridHeight;
+    gridRowCnt = (info.height/gridHeight) + ((info.height % gridHeight) > 0);
+    gridColCnt = (info.width/gridWidth) + ((info.width % gridWidth) > 0);
+}
+
+void eg::PNG::dividePlaygroundByCnt(int _gridRowCnt, int _gridColCnt) {
+    if(!info.initialized || !image.data())
+        throw exceptions::ImageNotOpened();
+    gridRowCnt = _gridRowCnt, gridColCnt = _gridColCnt;
+    gridWidth = info.width/gridColCnt;
+    gridHeight = info.height/gridRowCnt;
+}
+
+Eigen::Tensor<double, 2> eg::PNG::getPlaygroundAtGrid(int r, int c) {
+    if(r < 0 || r >= gridRowCnt)
+        throw exceptions::InvalidParameter();
+    if(c < 0 || c >= gridColCnt)
+        throw exceptions::InvalidParameter();
+
+    Eigen::array<Eigen::Index, 2> offsets = {r*gridHeight, c*gridWidth};
+    Eigen::array<Eigen::Index, 2> extents = {std::min((int)info.height - r*gridHeight, gridHeight),
+                                             std::min((int)info.width - c*gridWidth, gridWidth)};
+
+    return playground.slice(offsets, extents);
 }

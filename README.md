@@ -23,3 +23,7 @@ We didn't use image processing library such as OpenCV because using libpng was m
 1. `mkdir build && cd build`
 3. `cmake ..`
 4. `make`
+
+# How to use
+1. Generate ascii image file: generate ascii character file and `tools/ascii2image/ascii2image.sh ASCII_CHARACTER_FILE OUTPUT_FOLDER`
+

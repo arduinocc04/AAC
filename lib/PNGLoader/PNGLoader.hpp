@@ -8,6 +8,7 @@
  */
 #include <string>
 #include <cmath>
+#include <algorithm>
 
 #include <png.h>
 
@@ -124,9 +125,29 @@ public:
      * @attention This will change playground and opened image
      */
     void blur(int method);
+    void binary(double threshold);
+    Eigen::Tensor<double, 2> * getPlayground() {
+        return &playground;
+    }
+
+    void dividePlaygroundByLength(int _gridHeight, int _gridWidth);
+
+    /**
+     * @todo implement correctly
+     */
+    void dividePlaygroundByCnt(int _gridRowCnt, int _gridColCnt);
+    int getGridColCnt() { return gridColCnt; }
+    int getGridRowCnt() { return gridRowCnt; }
+    int getGridWidth() { return gridWidth; }
+    int getGridHeight() { return gridHeight; }
+    Eigen::Tensor<double, 2> getPlaygroundAtGrid(int r, int c);
+
+    std::string getInputPath() { return inputPath; }
 private:
     Image image;
     Eigen::Tensor<double, 2> playground;
+    Eigen::Tensor<double, 2> ** playgroundGrid;
+    int gridWidth, gridHeight, gridColCnt, gridRowCnt;
     std::string inputPath;
     std::string outputPath;
     FILE * fimage;

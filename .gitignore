@@ -2,3 +2,7 @@ build/*
 .vscode/*
 doc/*
 !doc/doxy.conf
+tools/ascii2image/*
+!tools/ascii2image/ascii-hangul-n
+!tools/ascii2image/ascii2image.sh
+!tools/ascii2image/hangul-rmse
