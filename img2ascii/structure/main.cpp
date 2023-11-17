@@ -9,6 +9,8 @@
 
 #include "PNGLoader.hpp"
 
+#define DIST_METHOD 0 // 0: RMSE
+#define PRINT_INPUT_IMAGE 0
 namespace fs = std::filesystem;
 
 int getFileCount(std::string path) {
@@ -73,31 +75,41 @@ int main(int argc, char * argv[]) {
         std::cout << i + 1 << "/10 blurring input image" << std::endl;
         inputImage.blur(eg::blurMethod::gaussian);
     }
+
     std::cout << "Get Binary of input image" << std::endl;
     inputImage.binary(10);
     inputImage.dividePlaygroundByLength(asciih, asciiw);
 
-	print(*inputImage.getPlayground());
+	if(PRINT_INPUT_IMAGE)
+		print(*inputImage.getPlayground());
 
     int gcCnt = inputImage.getGridColCnt();
     int grCnt = inputImage.getGridRowCnt();
 
-    std::cout << std::endl;
+    std::cout << gcCnt << "x" << grCnt << std::endl;
     for(int i = 0; i < grCnt; i++) {
         for(int j = 0; j < gcCnt; j++) {
             Eigen::Tensor<double, 2> sample = inputImage.getPlaygroundAtGrid(i, j);
+
 			Eigen::Tensor<double, 0> tmp = sample.sum();
 			if(tmp(0) < 255*5) {
-				std::cout << " ";
+				std::cout << "  ";
 				continue;
 			}
-            double minRmse = 987654321;
+            double minVal = 987654321;
             int minIndex = -1;
             for(int k = 0; k < fCnt; k++) {
                 Eigen::Tensor<double, 2> tmp = eg::math::inflate(sample, asciih, asciiw);
-                double rmse = eg::math::rmse(tmp, *(asciiPNGs[k].getPlayground()));
-                if(rmse < minRmse) {
-                    minRmse = rmse;
+                double dist;
+                switch(DIST_METHOD) {
+                    case 0:
+                        dist = eg::math::rmse(tmp, *(asciiPNGs[k].getPlayground()));
+                        break;
+                    default:
+                        throw eg::exceptions::InvalidParameter();
+				}
+                if(dist < minVal) {
+                    minVal = dist;
                     minIndex = k;
                 }
             }
