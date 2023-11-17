@@ -46,7 +46,14 @@ eg::PNG * getAllImages(std::string path, int fCnt) {
 
 std::string getAsciiFromPath(std::string path) {
     std::string ans = path.substr(path.find_last_of("/\\") + 1);
-    return ans.substr(0, ans.find_last_of('.'));
+    std::string nameWithoutExt = ans.substr(0, ans.find_last_of('.'));
+    if(nameWithoutExt[0] == '=') {
+        char s[2];
+        s[0] = std::stoi(nameWithoutExt.substr(1), nullptr, 16);
+        s[1] = '\0';
+        return std::string(s);
+    }
+    return nameWithoutExt;
 }
 
 int main(int argc, char * argv[]) {
@@ -87,13 +94,14 @@ int main(int argc, char * argv[]) {
     int grCnt = inputImage.getGridRowCnt();
 
     std::cout << gcCnt << "x" << grCnt << std::endl;
+
     for(int i = 0; i < grCnt; i++) {
         for(int j = 0; j < gcCnt; j++) {
             Eigen::Tensor<double, 2> sample = inputImage.getPlaygroundAtGrid(i, j);
 
 			Eigen::Tensor<double, 0> tmp = sample.sum();
 			if(tmp(0) < 255*5) {
-				std::cout << "  ";
+				std::cout << " ";
 				continue;
 			}
             double minVal = 987654321;

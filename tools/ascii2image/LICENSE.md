@@ -1,4 +1,4 @@
-hangul-images.tar.gz 아래에 있는 한글 이미지의 폰트는 "D2Coding" 입니다.
+hangul-images.tar.gz, non-hangul-images.tar.gz 아래에 있는 한글 이미지의 폰트는 "D2Coding" 입니다.
 [LICENSE](https://github.com/naver/d2codingfont/wiki/Open-Font-License)
 
 Copyright (c) 2015, NAVER Corporation (http://www.navercorp.com), with Reserved Font Name D2Coding.
