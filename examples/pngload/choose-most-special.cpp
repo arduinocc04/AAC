@@ -3,8 +3,12 @@
 #include <filesystem>
 #include "PNGLoader.hpp"
 #include <cmath>
+#include <thread>
 
-int p[15'000];
+#define THREAD_CNT 8
+#define MAX_ASCIIS_CNT 15'000
+
+int p[MAX_ASCIIS_CNT];
 
 int find(int n) {
     if(n == p[n]) return n;
@@ -50,6 +54,12 @@ eg::PNG * getAllImages(std::string path, int fCnt) {
     return ans;
 }
 
+void fillRmse(Eigen::Tensor<double, 2> & rmses, int iStart, int iEnd, int jEnd, eg::PNG * pngs) {
+	for(int i = 0; i < iEnd; i++)
+		for(int j = i + 1; j < jEnd; j++)
+			rmses(i, j) = eg::math::rmse(*(pngs[i].getPlayground()), *(pngs[j].getPlayground()));
+}
+
 int main(int argc, char * argv[]) {
     std::ios::sync_with_stdio(false);
     std::cin.tie(NULL);
@@ -71,17 +81,17 @@ int main(int argc, char * argv[]) {
 
     const double thres = std::stod(argv[2]);
 
-    for(int i = 0; i < fCnt; i++) {
-        for(int j = i + 1; j < fCnt; j++) {
-            rmses(i, j) = eg::math::rmse(*(pngs[i].getPlayground()), *(pngs[j].getPlayground()));
-        }
-    }
+    std::thread ts[THREAD_CNT];
+	for(int i = 0; i < THREAD_CNT; i++) {
+		ts[i] = std::thread(fillRmse, std::ref(rmses), fCnt*(i/THREAD_CNT), fCnt*((i+1)/THREAD_CNT), fCnt, std::ref(pngs));
+		ts[i].join();
+	}
     std::cout << std::endl;
 
     std::cout << "MAX: " << rmses.maximum() << " MIN: " << rmses.minimum() << std::endl;
 
     for(int thres = 200; thres < 4000; thres += 200) {
-        for(int i = 0; i < 15'000; i++) p[i] = i;
+        for(int i = 0; i < MAX_ASCIIS_CNT; i++) p[i] = i;
         for(int i = 0; i < fCnt; i++)
             for(int j = i + 1; j < fCnt; j++)
                 if(rmses(i, j) < thres) merge(i, j);
