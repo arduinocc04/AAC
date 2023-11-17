@@ -77,6 +77,8 @@ int main(int argc, char * argv[]) {
     inputImage.binary(10);
     inputImage.dividePlaygroundByLength(asciih, asciiw);
 
+	print(*inputImage.getPlayground());
+
     int gcCnt = inputImage.getGridColCnt();
     int grCnt = inputImage.getGridRowCnt();
 
@@ -84,6 +86,11 @@ int main(int argc, char * argv[]) {
     for(int i = 0; i < grCnt; i++) {
         for(int j = 0; j < gcCnt; j++) {
             Eigen::Tensor<double, 2> sample = inputImage.getPlaygroundAtGrid(i, j);
+			Eigen::Tensor<double, 0> tmp = sample.sum();
+			if(tmp(0) < 255*5) {
+				std::cout << " ";
+				continue;
+			}
             double minRmse = 987654321;
             int minIndex = -1;
             for(int k = 0; k < fCnt; k++) {
