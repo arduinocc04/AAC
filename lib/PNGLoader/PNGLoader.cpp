@@ -130,6 +130,14 @@ void eg::PNG::readImageBuffer(std::string _inputPath) {
         }
     }
 
+    for(int i = 0; i < info.height; i++) {
+        for(int j = 0; j < info.width; j++) {
+            if(buffer[i][j].a < 245) {
+                buffer[i][j].r = buffer[i][j].g = buffer[i][j].b = 0;
+            }
+        }
+    }
+
     fclose(fimage);
 }
 
