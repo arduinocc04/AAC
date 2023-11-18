@@ -11,6 +11,9 @@
 
 #define DIST_METHOD 0 // 0: RMSE
 #define PRINT_INPUT_IMAGE 0
+
+#define INF 987654321
+
 namespace fs = std::filesystem;
 
 int getFileCount(std::string path) {
@@ -104,7 +107,7 @@ int main(int argc, char * argv[]) {
 				std::cout << " ";
 				continue;
 			}
-            double minVal = 987654321;
+            double minVal = INF;
             int minIndex = -1;
             for(int k = 0; k < fCnt; k++) {
                 Eigen::Tensor<double, 2> tmp = eg::math::inflate(sample, asciih, asciiw);
