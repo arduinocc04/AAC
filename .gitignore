@@ -11,3 +11,4 @@ tools/ascii2image/*
 !tools/ascii2image/LICENSE.md
 !tools/ascii2image/hanguls-selected-rmse
 !tools/ascii2image/install-fonts.sh
+!tools/ascii2image/ascii-non-hangul-n
