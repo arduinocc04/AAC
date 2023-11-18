@@ -1,5 +1,6 @@
 #include "PNGLoader.hpp"
 #define PNG_HEAD_BYTE 8
+#define ALPHA_THRESHOLD 245
 
 eg::PNG::PNG() {
     info.initialized = false;
@@ -126,6 +127,14 @@ void eg::PNG::readImageBuffer(std::string _inputPath) {
         for(int i = 0; i < info.height; i++) {
             for(int j = 0; j < info.width; j++) {
                 buffer[i][j].a = 255;
+            }
+        }
+    }
+
+    for(int i = 0; i < info.height; i++) {
+        for(int j = 0; j < info.width; j++) {
+            if(buffer[i][j].a < ALPHA_THRESHOLD) {
+                buffer[i][j].r = buffer[i][j].g = buffer[i][j].b = 0;
             }
         }
     }

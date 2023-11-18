@@ -9,6 +9,11 @@
 
 #include "PNGLoader.hpp"
 
+#define DIST_METHOD 0 // 0: RMSE
+#define PRINT_INPUT_IMAGE 0
+
+#define INF 987654321
+
 namespace fs = std::filesystem;
 
 int getFileCount(std::string path) {
@@ -44,7 +49,14 @@ eg::PNG * getAllImages(std::string path, int fCnt) {
 
 std::string getAsciiFromPath(std::string path) {
     std::string ans = path.substr(path.find_last_of("/\\") + 1);
-    return ans.substr(0, ans.find_last_of('.'));
+    std::string nameWithoutExt = ans.substr(0, ans.find_last_of('.'));
+    if(nameWithoutExt[0] == '=') {
+        char s[2];
+        s[0] = std::stoi(nameWithoutExt.substr(1), nullptr, 16);
+        s[1] = '\0';
+        return std::string(s);
+    }
+    return nameWithoutExt;
 }
 
 int main(int argc, char * argv[]) {
@@ -73,31 +85,42 @@ int main(int argc, char * argv[]) {
         std::cout << i + 1 << "/10 blurring input image" << std::endl;
         inputImage.blur(eg::blurMethod::gaussian);
     }
+
     std::cout << "Get Binary of input image" << std::endl;
     inputImage.binary(10);
     inputImage.dividePlaygroundByLength(asciih, asciiw);
 
-	print(*inputImage.getPlayground());
+	if(PRINT_INPUT_IMAGE)
+		print(*inputImage.getPlayground());
 
     int gcCnt = inputImage.getGridColCnt();
     int grCnt = inputImage.getGridRowCnt();
 
-    std::cout << std::endl;
+    std::cout << gcCnt << "x" << grCnt << std::endl;
+
     for(int i = 0; i < grCnt; i++) {
         for(int j = 0; j < gcCnt; j++) {
             Eigen::Tensor<double, 2> sample = inputImage.getPlaygroundAtGrid(i, j);
+
 			Eigen::Tensor<double, 0> tmp = sample.sum();
 			if(tmp(0) < 255*5) {
 				std::cout << " ";
 				continue;
 			}
-            double minRmse = 987654321;
+            double minVal = INF;
             int minIndex = -1;
             for(int k = 0; k < fCnt; k++) {
                 Eigen::Tensor<double, 2> tmp = eg::math::inflate(sample, asciih, asciiw);
-                double rmse = eg::math::rmse(tmp, *(asciiPNGs[k].getPlayground()));
-                if(rmse < minRmse) {
-                    minRmse = rmse;
+                double dist;
+                switch(DIST_METHOD) {
+                    case 0:
+                        dist = eg::math::rmse(tmp, *(asciiPNGs[k].getPlayground()));
+                        break;
+                    default:
+                        throw eg::exceptions::InvalidParameter();
+				}
+                if(dist < minVal) {
+                    minVal = dist;
                     minIndex = k;
                 }
             }
