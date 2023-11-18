@@ -1,3 +1,8 @@
+/**
+ * @file PNGMath.hpp
+ * @author Daniel Cho
+ * @version 0.0.1
+ */
 #ifndef __PNGEXCEPTIONS_H
 #include "PNGExceptions.hpp"
 #endif

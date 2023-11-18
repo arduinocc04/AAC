@@ -1,3 +1,8 @@
+/**
+ * @file blur.cpp
+ * @author Daniel cho
+ * @version 0.0.1
+ */
 #include "PNGLoader.hpp"
 
 void eg::PNG::blur(int method) {

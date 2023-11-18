@@ -1,5 +1,5 @@
 /**
- * @file PNGLoader.h
+ * @file PNGLoader.hpp
  *
  * @brief Load png image easy. Easy pnG
  * @author Daniel Cho
