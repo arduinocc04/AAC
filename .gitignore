@@ -10,3 +10,4 @@ tools/ascii2image/*
 !tools/ascii2image/non-hangul-images.tar.gz
 !tools/ascii2image/LICENSE.md
 !tools/ascii2image/hanguls-selected-rmse
+!tools/ascii2image/install-fonts.sh
