@@ -1,2 +1,3 @@
-add_executable(img2ascii main.cpp)
-target_link_libraries(img2ascii png curses)
+add_executable(tone main.cpp)
+target_link_libraries(tone pngload)
+target_include_directories(tone PRIVATE ../../lib/PNGLoader)

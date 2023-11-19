@@ -1,3 +1,8 @@
+/**
+ * @file PNGLoader.cpp
+ * @author Daniel Cho
+ * @version 0.0.1
+ */
 #include "PNGLoader.hpp"
 #define PNG_HEAD_BYTE 8
 #define ALPHA_THRESHOLD 245

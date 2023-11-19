@@ -1,3 +1,3 @@
-add_executable(img2ascii-structure main.cpp)
-target_link_libraries(img2ascii-structure pngload curses)
-target_include_directories(img2ascii-structure PRIVATE ../../lib/PNGLoader)
+add_executable(structure main.cpp)
+target_link_libraries(structure pngload curses)
+target_include_directories(structure PRIVATE ../../lib/PNGLoader)

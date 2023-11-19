@@ -1,3 +1,8 @@
+/**
+ * @file cvtGray.cpp
+ * @author Daniel Cho
+ * @version 0.0.1
+ */
 #include "PNGLoader.hpp"
 
 void eg::PNG::cvtGrayMean() {

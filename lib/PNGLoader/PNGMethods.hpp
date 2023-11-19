@@ -1,3 +1,8 @@
+/**
+ * @file PNGMethods.hpp
+ * @author Daniel Cho
+ * @version 0.0.1
+ */
 namespace eg {
 
 /**
