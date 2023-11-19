@@ -15,15 +15,9 @@ We didn't use image processing library such as OpenCV because using libpng was m
 1. `pacman -S libpng ncurses eigen`
 
 # Documentation
-- We use doxygen for documentation.  
+- We use doxygen for documentation.
 1. `pacman -S doxygen`
 2. `cd doc && doxygen doxy.conf`
 
-# How to build
-1. `mkdir build && cd build`
-3. `cmake ..`
-4. `make`
-
 # How to use
-1. Generate ascii image file: generate ascii character file and `tools/ascii2image/ascii2image.sh ASCII_CHARACTER_FILE OUTPUT_FOLDER`
-
+1. `./install.sh`
