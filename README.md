@@ -21,3 +21,8 @@ We didn't use image processing library such as OpenCV because using libpng was m
 
 # How to use
 1. `./install.sh`
+2. To use structure-based ascii art, move to build directory and `img2ascii/structure/structure ASCII_FOLDER_NAME INPUT.png`
+3. To use tone-based ascii art, move to build directory and `img2ascii/tone/tone INPUT.png`
+## Example
+`cd build && img2ascii/structure/structure non-hangul-images INPUT.png`  
+If you used `install.sh`, `non-hangul-images` will be inside your build directory.
