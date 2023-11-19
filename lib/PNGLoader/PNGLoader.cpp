@@ -15,10 +15,17 @@ eg::PNG::PNG() {
 };
 
 eg::PNG::~PNG() {
-    if(pngStructp)
-        png_destroy_read_struct(&pngStructp,
-                                NULL, NULL
-        );
+    if(pngStructp) {
+        if (pngInfop) {
+            png_destroy_read_struct(&pngStructp,
+                                    &pngInfop, NULL
+            );
+        } else {
+            png_destroy_read_struct(&pngStructp,
+                                    NULL, NULL
+            );
+        }
+    }
 };
 
 bool eg::PNG::getMetadata() {
@@ -40,7 +47,7 @@ bool eg::PNG::isPNG() {
           PNG_HEAD_BYTE, fimage);
 
     bool ans = !png_sig_cmp(header, 0, PNG_HEAD_BYTE);
-    delete header;
+    delete[] header;
 
     return ans;
 }
@@ -58,8 +65,8 @@ void eg::PNG::allocBuffer() {
 }
 
 void eg::PNG::freeBuffer() {
-    for(int i = 0; i < info.height; i++) delete buffer[i];
-    delete buffer;
+    for(int i = 0; i < info.height; i++) delete[] buffer[i];
+    delete[] buffer;
     buffer = nullptr;
 }
 
