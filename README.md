@@ -15,15 +15,14 @@ We didn't use image processing library such as OpenCV because using libpng was m
 1. `pacman -S libpng ncurses eigen`
 
 # Documentation
-- We use doxygen for documentation.  
+- We use doxygen for documentation.
 1. `pacman -S doxygen`
 2. `cd doc && doxygen doxy.conf`
 
-# How to build
-1. `mkdir build && cd build`
-3. `cmake ..`
-4. `make`
-
 # How to use
-1. Generate ascii image file: generate ascii character file and `tools/ascii2image/ascii2image.sh ASCII_CHARACTER_FILE OUTPUT_FOLDER`
-
+1. `./install.sh`
+2. To use structure-based ascii art, move to build directory and `img2ascii/structure/structure ASCII_FOLDER_NAME INPUT.png`
+3. To use tone-based ascii art, move to build directory and `img2ascii/tone/tone INPUT.png`
+## Example
+`cd build && img2ascii/structure/structure non-hangul-images INPUT.png`  
+If you used `install.sh`, `non-hangul-images` will be inside your build directory.
