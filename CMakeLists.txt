@@ -16,6 +16,5 @@ find_package(Eigen3 3.3 REQUIRED)
 SUBDIRS (
     lib
 	examples
-	external-examples
 	img2ascii
 )

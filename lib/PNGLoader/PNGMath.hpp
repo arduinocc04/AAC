@@ -13,6 +13,8 @@
 #endif
 #define __Tensor
 
+#include <vector>
+
 namespace eg::math {
 /**
  * @todo Study other's implementation. I don't know how to behave at corners.
@@ -40,4 +42,9 @@ double rmse(Eigen::Tensor<double, 2> & a, Eigen::Tensor<double, 2> & b);
  */
 Eigen::Tensor<double, 2> inflate(Eigen::Tensor<double, 2> & a, int h, int w);
 
+Eigen::Tensor<double, 2> grassfire(Eigen::Tensor<double, 2> & a, Eigen::Tensor<double, 2> & mask);
+
+std::vector<std::pair<int, int>> getConvexHull(std::vector<std::pair<int, int>> & a);
+
+Eigen::Tensor<double, 2> getMask(Eigen::Tensor<double, 2> & a);
 }
