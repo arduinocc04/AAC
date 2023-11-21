@@ -1,3 +1,0 @@
-SUBDIRS (
-	CSE2035
-)
