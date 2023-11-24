@@ -3,7 +3,7 @@
  * @author Daniel Cho
  * @version 0.0.1
  */
-#include "PNGLoader.hpp"
+#include "egLoader.hpp"
 #define PNG_HEAD_BYTE 8
 #define ALPHA_THRESHOLD 245
 
@@ -52,8 +52,16 @@ bool eg::PNG::isPNG() {
     return ans;
 }
 
-void eg::PNG::allocPlayground() {
-    playground = Eigen::Tensor<double, 2>(info.height, info.width);
+void eg::PNG::setImage(eg::Image & a) {
+    int h = image.dimensions()[0];
+    int w = image.dimensions()[1];
+    if(h != a.dimensions()[0] || w != a.dimensions()[1])
+        throw eg::exceptions::InvalidParameter();
+
+    for(int i = 0; i < h; i++)
+        for(int j = 0; j < w; j++)
+            for(int k = 0; k < 4; k++)
+                image(i, j, k) = a(i, j, k);
 }
 
 void eg::PNG::allocBuffer() {
@@ -72,12 +80,6 @@ void eg::PNG::freeBuffer() {
 
 void eg::PNG::allocImage() {
     image = Eigen::Tensor<png_byte, 3>(info.height, info.width, 4);
-}
-
-void eg::PNG::copyImageToPlayground() {
-    for(int i = 0; i < info.height; i++)
-        for(int j = 0; j < info.width; j++)
-            playground(i, j) = image(i, j, 0); // Because we will grayscale image.
 }
 
 void eg::PNG::copyBufferToImage() {
@@ -203,52 +205,32 @@ eg::Image * eg::PNG::getImage() {
     return &image;
 }
 
-void eg::PNG::copyPlaygroundToImage() {
-    for(int i = 0; i < info.height; i++) {
-        for(int j = 0; j < info.width; j++) {
-            for(int k = 0; k < 3; k++) {
-                image(i, j, k) = std::round(playground(i, j));
-            }
-            image(i, j, 3) = 255;
-        }
-    }
-}
-
-eg::Image * eg::PNG::copy() {
+eg::Image eg::PNG::copy() {
     Image res = Eigen::Tensor<png_byte, 3>(info.height, info.width, 4);
     for(int i = 0; i < info.height; i++)
         for(int j = 0; j < info.width; j++)
             for(int k = 0; k < 4; k++)
                 res(i, j, k) = image(i, j, k);
 
-    return &res;
+    return res;
 }
 
-void eg::PNG::dividePlaygroundByLength(int _gridHeight, int _gridWidth) {
-    if(!info.initialized || !image.data())
-        throw exceptions::ImageNotOpened();
+void eg::PNG::divideImageByLength(int _gridHeight, int _gridWidth) {
     gridWidth = _gridWidth, gridHeight = _gridHeight;
     gridRowCnt = (info.height/gridHeight) + ((info.height % gridHeight) > 0);
     gridColCnt = (info.width/gridWidth) + ((info.width % gridWidth) > 0);
 }
 
-void eg::PNG::dividePlaygroundByCnt(int _gridRowCnt, int _gridColCnt) {
-    if(!info.initialized || !image.data())
-        throw exceptions::ImageNotOpened();
-    gridRowCnt = _gridRowCnt, gridColCnt = _gridColCnt;
-    gridWidth = info.width/gridColCnt;
-    gridHeight = info.height/gridRowCnt;
-}
-
-Eigen::Tensor<double, 2> eg::PNG::getPlaygroundAtGrid(int r, int c) {
+eg::Image eg::PNG::getImageAtGrid(int r, int c) {
     if(r < 0 || r >= gridRowCnt)
         throw exceptions::InvalidParameter();
     if(c < 0 || c >= gridColCnt)
         throw exceptions::InvalidParameter();
 
-    Eigen::array<Eigen::Index, 2> offsets = {r*gridHeight, c*gridWidth};
-    Eigen::array<Eigen::Index, 2> extents = {std::min((int)info.height - r*gridHeight, gridHeight),
-                                             std::min((int)info.width - c*gridWidth, gridWidth)};
+    Eigen::array<Eigen::Index, 3> offsets = {r*gridHeight, c*gridWidth, 0};
+    Eigen::array<Eigen::Index, 3> extents = {std::min((int)info.height - r*gridHeight, gridHeight),
+                                             std::min((int)info.width - c*gridWidth, gridWidth),
+                                             4};
 
-    return playground.slice(offsets, extents);
+    return image.slice(offsets, extents);
 }

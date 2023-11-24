@@ -1,5 +1,5 @@
 /**
- * @file PNGLoader.hpp
+ * @file egLoader.hpp
  *
  * @brief Load png image easy. Easy pnG
  * @author Daniel Cho
@@ -7,8 +7,6 @@
  * @version 0.0.1
  */
 #include <string>
-#include <cmath>
-#include <algorithm>
 
 #include <png.h>
 
@@ -17,17 +15,10 @@
 #endif
 #define __TENSOR
 
-#ifndef __PNGEXCEPTIONS_H
-#include "PNGExceptions.hpp"
+#ifndef __EGEXCEPTIONS_H
+#include "egExceptions.hpp"
 #endif
-#define __PNGEXCEPTIONS_H
-
-#ifndef __PNGMATH_H
-#include "PNGMath.hpp"
-#endif
-#define __PNGMATH_H
-
-#include "PNGMethods.hpp"
+#define __EGEXCEPTIONS_H
 
 namespace eg {
 
@@ -72,6 +63,8 @@ public:
      */
     void openImage(std::string _inputPath);
 
+    void setImage(Image & a);
+
     /**
      * @brief get pointer of image
      *
@@ -80,18 +73,6 @@ public:
      * @return Image pointer
      */
     Image * getImage();
-
-    /**
-     * @brief convert opened image to grayscale.
-     * @attention you need open image before call this function. Call this method will change playground and opened image.
-     * @param method an integer
-     * @see eg::PNG::cvtGrayMean
-     * @see eg::grayCvtMethod
-     * @throws GetMetadataFailed
-     * @throws InvalidFormat
-     * @throws InvalidParameter
-     */
-    void cvtGray(int method);
 
     /**
      * @brief save opened image.
@@ -104,49 +85,25 @@ public:
     void saveImage(std::string _outputPath);
 
     /**
-     * @brief get pointer of copied image
-     *
-     * @attention Do not use this function as far as you can. This function can be deprecated because it's hard to free Image type.
+     * @brief get copied image
      *
      * @see getImage
      *
-     * @return Image pointer
+     * @return Image
      */
-    Image * copy();
+    Image copy();
 
-    /**
-     * @brief get Edge of playground.
-     * @attention This will change playground and opened image.
-     */
-    void getEdge(int method);
+    void divideImageByLength(int _gridHeight, int _gridWidth);
 
-    /**
-     * @brief blur playground.
-     * @attention This will change playground and opened image
-     */
-    void blur(int method);
-    void binary(double threshold);
-    Eigen::Tensor<double, 2> * getPlayground() {
-        return &playground;
-    }
-
-    void dividePlaygroundByLength(int _gridHeight, int _gridWidth);
-
-    /**
-     * @todo implement correctly
-     */
-    void dividePlaygroundByCnt(int _gridRowCnt, int _gridColCnt);
     int getGridColCnt() { return gridColCnt; }
     int getGridRowCnt() { return gridRowCnt; }
     int getGridWidth() { return gridWidth; }
     int getGridHeight() { return gridHeight; }
-    Eigen::Tensor<double, 2> getPlaygroundAtGrid(int r, int c);
+    Image getImageAtGrid(int r, int c);
 
     std::string getInputPath() { return inputPath; }
 private:
     Image image;
-    Eigen::Tensor<double, 2> playground;
-    Eigen::Tensor<double, 2> ** playgroundGrid;
     int gridWidth, gridHeight, gridColCnt, gridRowCnt;
     std::string inputPath;
     std::string outputPath;
@@ -168,11 +125,6 @@ private:
     /**
      * @attention calling this function will overwrite data
      */
-    void allocPlayground();
-
-    /**
-     * @attention calling this function will overwrite data
-     */
     void allocImage();
 
     /**
@@ -188,30 +140,11 @@ private:
     void copyImageToBuffer();
 
     /**
-     * @attention to call this function, you must allocate playground
-     * @see eg::PNG::allocPlayground
-     */
-    void copyImageToPlayground();
-
-    /**
-     * @attention to call this function, you must allocate image
-     * @see eg::PNG::allocImage
-     */
-    void copyPlaygroundToImage();
-
-    /**
      * @attention this will overwrite inputPath, fimage, pngStructp, pngInfop, info, buffer
      * @attention After call this, please copy buffer to image
      * @see eg::PNG::copyBufferToImage
      */
     void readImageBuffer(std::string _inputPath);
-
-    /**
-     * @brief convert rgba image to grayscale by average pixel values
-     */
-    void cvtGrayMean();
-    void getEdgeGrad();
-    void blurGaussian();
 };
 
 }
