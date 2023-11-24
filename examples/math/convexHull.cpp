@@ -2,7 +2,7 @@
 #include <vector>
 #include <algorithm>
 
-#include "PNGLoader.hpp"
+#include "egGeometry.hpp"
 
 std::vector<std::pair<int, int>> dots;
 
@@ -17,7 +17,7 @@ int main() {
 
     std::sort(dots.begin(), dots.end());
 
-    std::vector<std::pair<int, int>> hull = eg::math::getConvexHull(dots);
+    std::vector<std::pair<int, int>> hull = eg::geo::getConvexHull(dots);
 
     for(int i = 0; i < hull.size(); i++) {
         std::cout << hull[i].first << " " << hull[i].second << std::endl;

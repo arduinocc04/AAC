@@ -26,4 +26,20 @@ enum blurMethod {
     gaussian
 };
 
+enum vectorizeMethod {
+    line, potrace
+};
+
+enum distanceMethod {
+    taxi
+};
+
+enum centerlineMethod {
+    grassfire
+};
+
+enum paddingMethod {
+    zero
+};
+
 }
