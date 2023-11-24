@@ -3,10 +3,10 @@
  * @author Daniel Cho
  * @version 0.0.1
  */
-#ifndef __PNGEXCEPTIONS_H
-#include "PNGExceptions.hpp"
+#ifndef __EGEXCEPTIONS_H
+#include "egExceptions.hpp"
 #endif
-#define __PNGEXCEPTIONS_H
+#define __EGEXCEPTIONS_H
 
 #ifndef __Tensor
 #include <unsupported/Eigen/CXX11/Tensor>
@@ -33,18 +33,6 @@ Eigen::Tensor<double, 2> conv(
  */
 double rmse(Eigen::Tensor<double, 2> & a, Eigen::Tensor<double, 2> & b);
 
-/**
- * @brief size up tensor by fill zeros
- * @param a 2d double tensor
- * @param h target height
- * @param w target width
- * @return scaled tensor
- */
-Eigen::Tensor<double, 2> inflate(Eigen::Tensor<double, 2> & a, int h, int w);
-
 Eigen::Tensor<double, 2> grassfire(Eigen::Tensor<double, 2> & a, Eigen::Tensor<double, 2> & mask);
-
-std::vector<std::pair<int, int>> getConvexHull(std::vector<std::pair<int, int>> & a);
-
-Eigen::Tensor<double, 2> getMask(Eigen::Tensor<double, 2> & a);
 }
+

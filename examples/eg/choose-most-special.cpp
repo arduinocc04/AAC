@@ -1,14 +1,19 @@
 #include <iostream>
 #include <string>
 #include <filesystem>
-#include "PNGLoader.hpp"
+#include "egLoader.hpp"
+#include "egMath.hpp"
+#include "egProcessing.hpp"
 #include <cmath>
 #include <thread>
+
+using namespace eg::imgproc;
 
 #define THREAD_CNT 8
 #define MAX_ASCIIS_CNT 15'000
 
 int p[MAX_ASCIIS_CNT];
+std::string names[MAX_ASCIIS_CNT];
 
 int find(int n) {
     if(n == p[n]) return n;
@@ -39,14 +44,17 @@ void print(Eigen::Tensor<double, 2> & a) {
     }
 }
 
-eg::PNG * getAllImages(std::string path, int fCnt) {
-    eg::PNG * ans = new eg::PNG[fCnt];
+Mat2d * getAllImages(std::string path, int fCnt) {
+    Mat2d * ans = new Mat2d[fCnt];
 
     int i = 0;
+    eg::PNG t;
     for(const auto & entry : fs::directory_iterator(path)) {
-        ans[i].openImage(entry.path());
-        ans[i].cvtGray(eg::grayCvtMethod::mean);
-        ans[i].binary(70);
+        t.openImage(entry.path());
+        names[i] = entry.path();
+        Image ti = t.copy();
+        ans[i] = cvtGray(ti, eg::grayCvtMethod::mean);
+        ans[i] = binary(ans[i], 70);
         i += 1;
     }
     std::cout << std::endl;
@@ -54,10 +62,10 @@ eg::PNG * getAllImages(std::string path, int fCnt) {
     return ans;
 }
 
-void fillRmse(Eigen::Tensor<double, 2> & rmses, int iStart, int iEnd, int jEnd, eg::PNG * pngs) {
-	for(int i = 0; i < iEnd; i++)
-		for(int j = i + 1; j < jEnd; j++)
-			rmses(i, j) = eg::math::rmse(*(pngs[i].getPlayground()), *(pngs[j].getPlayground()));
+void fillRmse(Eigen::Tensor<double, 2> & rmses, int iStart, int iEnd, int jEnd, Mat2d * pngs) {
+    for(int i = 0; i < iEnd; i++)
+        for(int j = i + 1; j < jEnd; j++)
+            rmses(i, j) = eg::math::rmse(pngs[i], pngs[j]);
 }
 
 int main(int argc, char * argv[]) {
@@ -70,22 +78,21 @@ int main(int argc, char * argv[]) {
     }
 
     std::string path = argv[1];
-
     int fCnt = getFileCount(path);
 
     std::cout << "Handling " << fCnt << " images." << std::endl;
 
-    eg::PNG * pngs = getAllImages(path, fCnt);
+    Mat2d * pngs = getAllImages(path, fCnt);
 
     Eigen::Tensor<double, 2> rmses(fCnt, fCnt);
 
     const double thres = std::stod(argv[2]);
 
     std::thread ts[THREAD_CNT];
-	for(int i = 0; i < THREAD_CNT; i++) {
-		ts[i] = std::thread(fillRmse, std::ref(rmses), fCnt*(i/THREAD_CNT), fCnt*((i+1)/THREAD_CNT), fCnt, std::ref(pngs));
-		ts[i].join();
-	}
+    for(int i = 0; i < THREAD_CNT; i++) {
+        ts[i] = std::thread(fillRmse, std::ref(rmses), fCnt*(i/THREAD_CNT), fCnt*((i+1)/THREAD_CNT), fCnt, std::ref(pngs));
+        ts[i].join();
+    }
     std::cout << std::endl;
 
     std::cout << "MAX: " << rmses.maximum() << " MIN: " << rmses.minimum() << std::endl;
@@ -100,7 +107,7 @@ int main(int argc, char * argv[]) {
         std::cout << "========" << thres << "========" << std::endl;
         for(int i = 0; i < fCnt; i++) {
             if(p[i] == i) {
-                std::cout << pngs[i].getInputPath() << std::endl;
+                std::cout << names[i] << std::endl;
                 c++;
             }
         }

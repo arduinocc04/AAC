@@ -6,7 +6,10 @@
  */
 #include <iostream>
 
-#include "PNGLoader.hpp"
+#include "egLoader.hpp"
+#include "egProcessing.hpp"
+
+using namespace eg::imgproc;
 
 #define ASCII_WIDTH 16
 #define ASCII_HEIGHT 22
@@ -19,9 +22,8 @@ int main(int argc, char * argv[]) {
     std::string inputPath = argv[1];
     eg::PNG png;
     png.openImage(inputPath);
-    png.cvtGray(eg::grayCvtMethod::mean);
 
-    png.dividePlaygroundByLength(ASCII_HEIGHT, ASCII_WIDTH);
+    png.divideImageByLength(ASCII_HEIGHT, ASCII_WIDTH);
     int gcCnt = png.getGridColCnt();
     int grCnt = png.getGridRowCnt();
 
@@ -29,7 +31,8 @@ int main(int argc, char * argv[]) {
 
     for(int i = 0; i < grCnt; i++) {
         for(int j = 0; j < gcCnt; j++) {
-            Eigen::Tensor<double, 2> sample = png.getPlaygroundAtGrid(i, j);
+            Image raw = png.getImageAtGrid(i, j);
+            Mat2d sample = cvtGray(raw, eg::grayCvtMethod::mean);
             Eigen::Tensor<double, 0> t = sample.sum();
             double ratio = t(0)/(sample.dimensions()[0]*sample.dimensions()[1]);
             if(ratio < 30) std::cout << " ";
