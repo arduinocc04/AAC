@@ -1,5 +1,6 @@
 SUBDIRS (
 	ncurses
 	libpng
-    pngload
+    eg
+    math
 )

@@ -7,14 +7,19 @@
 #include <iostream>
 #include <filesystem>
 
-#include "PNGLoader.hpp"
+#include "egLoader.hpp"
+#include "egProcessing.hpp"
+#include "egMath.hpp"
 
 #define DIST_METHOD 0 // 0: RMSE
 #define PRINT_INPUT_IMAGE 0
 
 #define INF 987654321
 
+using namespace eg::imgproc;
 namespace fs = std::filesystem;
+
+std::string * names;
 
 int getFileCount(std::string path) {
     int fCnt = 0;
@@ -32,14 +37,17 @@ void print(Eigen::Tensor<double, 2> & a) {
     }
 }
 
-eg::PNG * getAllImages(std::string path, int fCnt) {
-    eg::PNG * ans = new eg::PNG[fCnt];
+Mat2d * getAllImages(std::string path, int fCnt) {
+    Mat2d * ans = new Mat2d[fCnt];
 
     int i = 0;
+    eg::PNG png;
     for(const auto & entry : fs::directory_iterator(path)) {
-        ans[i].openImage(entry.path());
-        ans[i].cvtGray(eg::grayCvtMethod::mean);
-        ans[i].binary(70);
+        png.openImage(entry.path());
+        names[i] = entry.path();
+        Image t = png.copy();
+        ans[i] = cvtGray(t, eg::grayCvtMethod::mean);
+        ans[i] = binary(ans[i], 70);
         i += 1;
     }
     std::cout << std::endl;
@@ -69,65 +77,77 @@ int main(int argc, char * argv[]) {
 
     int fCnt = getFileCount(asciiImagesPath);
     std::cout << "Opening ascii images" << std::endl;
-    eg::PNG * asciiPNGs = getAllImages(asciiImagesPath, fCnt);
+
+    names = new std::string[fCnt];
+
+    Mat2d * asciiPNGs = getAllImages(asciiImagesPath, fCnt);
     std::cout << "Opened ascii images" << std::endl;
-    int asciih = asciiPNGs[0].getPlayground()->dimensions()[0];
-    int asciiw = asciiPNGs[0].getPlayground()->dimensions()[1];
+    int asciih = asciiPNGs[0].dimensions()[0];
+    int asciiw = asciiPNGs[0].dimensions()[1];
 
     eg::PNG inputImage;
     std::cout << "Opening input image" << std::endl;
     inputImage.openImage(inputImagePath);
+    Image i = inputImage.copy();
     std::cout << "Converting input image gray" << std::endl;
-    inputImage.cvtGray(eg::grayCvtMethod::mean);
+    Mat2d t = cvtGray(i, eg::grayCvtMethod::mean);
     std::cout << "Getting Edge of input image" << std::endl;
-    inputImage.getEdge(eg::edgeDetectMethod::gradient);
+    t = getEdge(t, eg::edgeDetectMethod::gradient);
     for(int i = 0; i < 10; i++) {
         std::cout << i + 1 << "/10 blurring input image" << std::endl;
-        inputImage.blur(eg::blurMethod::gaussian);
+        t = blur(t, eg::blurMethod::gaussian);
     }
-
     std::cout << "Get Binary of input image" << std::endl;
-    inputImage.binary(10);
-    inputImage.dividePlaygroundByLength(asciih, asciiw);
-
-	if(PRINT_INPUT_IMAGE)
-		print(*inputImage.getPlayground());
+    t = binary(t, 10);
+    i = mat2dToImage(t);
+    inputImage.setImage(i);
+    inputImage.divideImageByLength(asciih, asciiw);
 
     int gcCnt = inputImage.getGridColCnt();
     int grCnt = inputImage.getGridRowCnt();
 
     std::cout << gcCnt << "x" << grCnt << std::endl;
 
+    char null[10];
+
     for(int i = 0; i < grCnt; i++) {
         for(int j = 0; j < gcCnt; j++) {
-            Eigen::Tensor<double, 2> sample = inputImage.getPlaygroundAtGrid(i, j);
+            Image raw = inputImage.getImageAtGrid(i, j);
+            Mat2d sample = cvtGray(raw, eg::grayCvtMethod::mean);
 
-			Eigen::Tensor<double, 0> tmp = sample.sum();
-			if(tmp(0) < 255*5) {
-				std::cout << " ";
-				continue;
-			}
+            if(PRINT_INPUT_IMAGE) {
+                std::cout << "===Printing input image at grid " << i << " " << j << std::endl;
+                print(sample);
+                std::cin >> null;
+            }
+
+            Eigen::Tensor<double, 0> tmp = sample.sum();
+            if(tmp(0) < asciih*asciiw/10) {
+                std::cout << " ";
+                continue;
+            }
             double minVal = INF;
             int minIndex = -1;
             for(int k = 0; k < fCnt; k++) {
-                Eigen::Tensor<double, 2> tmp = eg::math::inflate(sample, asciih, asciiw);
+                Mat2d tmp = inflate(sample, asciih, asciiw);
                 double dist;
                 switch(DIST_METHOD) {
                     case 0:
-                        dist = eg::math::rmse(tmp, *(asciiPNGs[k].getPlayground()));
+                        dist = eg::math::rmse(tmp, asciiPNGs[k]);
                         break;
                     default:
                         throw eg::exceptions::InvalidParameter();
-				}
+                }
                 if(dist < minVal) {
                     minVal = dist;
                     minIndex = k;
                 }
             }
-            std::string ascii = getAsciiFromPath(asciiPNGs[minIndex].getInputPath());
+            std::string ascii = getAsciiFromPath(names[minIndex]);
             std::cout << ascii;
         }
         std::cout << std::endl;
     }
     delete[] asciiPNGs;
+    delete[] names;
 }
