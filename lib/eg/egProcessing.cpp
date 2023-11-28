@@ -271,7 +271,7 @@ std::pair<Paths, std::vector<int>> getContourSuzuki(Mat2d & bin) {
                             continue;
                         if(ans(tx, ty)) {
                             i4 = tx, j4 = ty;
-                            break; // tlqkf!!!!!! I omit this... wasted 3 hours....
+                            break;
                         }
                     }
 
@@ -280,7 +280,7 @@ std::pair<Paths, std::vector<int>> getContourSuzuki(Mat2d & bin) {
                     if(rcond && examined) {
                         ans(i3, j3) = -nbd;
                     }
-                    else if(!(rcond && examined) && ans(i3, j3) == 1) { // Fuck I omit ! in front of rcond and wasted 2 hours. FFFFFFFFFFFFFF !rcond && !examined != !(rcond && examined)
+                    else if(!(rcond && examined) && ans(i3, j3) == 1) {
                         ans(i3, j3) = nbd;
                     }
 
