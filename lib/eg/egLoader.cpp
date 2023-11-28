@@ -1,5 +1,5 @@
 /**
- * @file PNGLoader.cpp
+ * @file egLoader.cpp
  * @author Daniel Cho
  * @version 0.0.1
  */
@@ -189,6 +189,7 @@ void eg::PNG::saveImage(std::string _outputPath) {
                  info.colorType, info.interlaceMethod,
                  info.compressionMethod,
                  info.filterMethod);
+
     png_write_info(opngStructp, oInfop);
 
     allocBuffer();

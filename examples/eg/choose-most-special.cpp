@@ -1,3 +1,8 @@
+/**
+ * @file choose-most-special.cpp
+ * @author Daniel Cho
+ * @version 0.0.1
+ */
 #include <iostream>
 #include <string>
 #include <filesystem>
@@ -65,7 +70,7 @@ Mat2d * getAllImages(std::string path, int fCnt) {
 void fillRmse(Eigen::Tensor<double, 2> & rmses, int iStart, int iEnd, int jEnd, Mat2d * pngs) {
     for(int i = 0; i < iEnd; i++)
         for(int j = i + 1; j < jEnd; j++)
-            rmses(i, j) = eg::math::rmse(pngs[i], pngs[j]);
+            rmses(i, j) = eg::math::compareMat2d(pngs[i], pngs[j], eg::matCmpMethod::rmse);
 }
 
 int main(int argc, char * argv[]) {

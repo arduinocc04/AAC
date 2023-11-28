@@ -1,10 +1,13 @@
 /**
- * @file PNGMath.cpp
+ * @file egMath.cpp
  * @author Daniel Cho
  * @version 0.0.1
  */
+#include <cmath>
+
 #include "egMath.hpp"
 #include "egTypes.hpp"
+#include "egProcessing.hpp"
 
 using namespace eg;
 using namespace Eigen;
@@ -39,39 +42,63 @@ Mat2d eg::math::conv(Mat2d & input, Mat2d & kernel) {
     return out;
 }
 
-double eg::math::rmse(Mat2d & a, Mat2d & b) {
-    if(a.dimensions()[0] != b.dimensions()[0] ||
-        a.dimensions()[1] != b.dimensions()[1])
-            throw exceptions::InvalidParameter();
+// I wanted to name this function as rmse, but stupid compiler thought it's ambiguous.
+double calcrmse(Mat2d & a, Mat2d & b) {
     Tensor<double, 0> tmp = (a-b).square().sum();
     return std::sqrt(tmp(0));
 }
 
-/**
- * @attention the border of mask must zero. If not, if will raise segfault.
- */
-Mat2d eg::math::grassfire(Mat2d & a, Mat2d & mask) {
-    if(a.dimensions() != mask.dimensions())
-        throw exceptions::InvalidParameter();
-    Mat2d ans(a.dimensions());
-    ans.setConstant(0);
-    int h = a.dimensions()[0];
-    int w = a.dimensions()[1];
-
+double bhattacharyyaDist(Mat2d & ha, Mat2d & hb) {
+    int h = ha.dimensions()[0];
+    int w = ha.dimensions()[1];
+    Eigen::Tensor<double, 0> sa = ha.sum();
+    Eigen::Tensor<double, 0> sb = hb.sum();
+    double n = std::sqrt(sa(0))*std::sqrt(sb(0));
+    double s = 0;
     for(int i = 0; i < h; i++) {
         for(int j = 0; j < w; j++) {
-            if(mask(i, j) && a(i, j) > 0)
-                ans(i, j) = 1 + std::min(ans(i - 1, j), ans(i, j - 1)); // use taxi distance
+            s += std::sqrt(ha(i, j))*std::sqrt(hb(i, j));
         }
     }
-    for(int i = h - 1; i >= 0; i--) {
-        for(int j = w - 1; j >= 0; j--) {
-            if(mask(i, j) && a(i, j) > 0)
-                ans(i, j) = std::min(ans(i, j),
-                                     1 + std::min(ans(i + 1, j), ans(i, j + 1)));
-        }
-    }
-
-    return ans;
+    return std::sqrt(std::abs(1 - 1/n*s));
 }
 
+double eg::math::compareHistogram(Mat2d & ha, Mat2d & hb, int method) {
+    if(ha.dimensions() != hb.dimensions())
+        throw eg::exceptions::InvalidParameter();
+
+    switch(method) {
+        case eg::histCmpMethod::bhattacharyya:
+            return bhattacharyyaDist(ha, hb);
+        default:
+            throw eg::exceptions::InvalidParameter();
+    }
+}
+
+Dots merge(Paths & a) {
+    Dots p;
+    for(int i = 0; i < a.size(); i++)
+        for(int j = 0; j < a[i].size(); j++)
+            p.push_back(a[i][j]);
+    return p;
+}
+
+double eg::math::compareMat2d(Mat2d & a, Mat2d & b, int method) {
+    if(a.dimensions() != b.dimensions())
+        throw eg::exceptions::InvalidParameter();
+    switch(method) {
+        case eg::matCmpMethod::rmse:
+            return calcrmse(a, b);
+        case eg::matCmpMethod::logpolar: {
+            std::pair<Paths, std::vector<int>> tmpA = eg::imgproc::getContours(a, eg::contourMethod::suzuki);
+            std::pair<Paths, std::vector<int>> tmpB = eg::imgproc::getContours(b, eg::contourMethod::suzuki);
+            Dots dotsConsistsA = merge(tmpA.first);
+            Dots dotsConsistsB = merge(tmpB.first);
+            Mat2d histogramA = eg::imgproc::logpolar(dotsConsistA);
+            Mat2d histogramB = eg::imgproc::logpolar(dotsConsistB);
+            return compareHistogram(histogramA, histogramB, eg::histCmpMethod::bhattacharyya);
+        }
+        default:
+            throw eg::exceptions::InvalidParameter();
+    }
+}

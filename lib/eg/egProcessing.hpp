@@ -47,7 +47,26 @@ Mat2d binary(Mat2d & gray, double threshold);
 
 Mat2d extractCenterline(Mat2d & bin, int method);
 
-std::vector<Path> getContours(Mat2d & bin, int method);
+Mat2d saturate(Mat2d & gray);
+
+Mat2d markOutlier(Mat2d & gray, double threshold);
+
+/**
+ * @attention param must be binary image.
+ */
+Mat2d reverse(Mat2d & bin);
+
+Mat2d erode(Mat2d & bin, int kh, int kw);
+
+Mat2d dilate(Mat2d & bin, int kh, int kw);
+
+/**
+ * @breif getcontours using algorithm made by Suzuki and Abe
+ * @see Topological Structural Analysis of Digitized Binary Images by Border Following(1985) Appendix 1.
+ * @param bin binary image.
+ * @todo refactor
+ */
+std::pair<Paths, std::vector<int>> getContours(Mat2d & bin, int method);
 
 Mat2d getMask(Mat2d & gray);
 
@@ -63,4 +82,12 @@ Mat2d addPadding(Mat2d & a, int h, int j, int k, int l, int method);
 Mat2d inflate(Mat2d & a, int h, int w);
 
 Image mat2dToImage(Mat2d & a);
+
+Mat2d logpolar(Dots & a);
+
+/**
+ * @attention the border of mask must zero. If not, if will raise segfault.
+ */
+Eigen::Tensor<double, 2> grassfire(Eigen::Tensor<double, 2> & a, Eigen::Tensor<double, 2> & mask);
+
 }

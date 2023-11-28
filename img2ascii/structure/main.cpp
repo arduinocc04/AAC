@@ -93,12 +93,15 @@ int main(int argc, char * argv[]) {
     Mat2d t = cvtGray(i, eg::grayCvtMethod::mean);
     std::cout << "Getting Edge of input image" << std::endl;
     t = getEdge(t, eg::edgeDetectMethod::gradient);
+    //t = markOutlier(t, 10);
     for(int i = 0; i < 10; i++) {
         std::cout << i + 1 << "/10 blurring input image" << std::endl;
         t = blur(t, eg::blurMethod::gaussian);
     }
     std::cout << "Get Binary of input image" << std::endl;
     t = binary(t, 10);
+    //t = getContours(t, -1);
+    //t = markOutlier(t, 1);
     i = mat2dToImage(t);
     inputImage.setImage(i);
     inputImage.divideImageByLength(asciih, asciiw);
@@ -114,6 +117,9 @@ int main(int argc, char * argv[]) {
         for(int j = 0; j < gcCnt; j++) {
             Image raw = inputImage.getImageAtGrid(i, j);
             Mat2d sample = cvtGray(raw, eg::grayCvtMethod::mean);
+            //sample = getEdge(sample, eg::edgeDetectMethod::gradient);
+            //sample = getContours(sample, -1);
+            //sample = markOutlier(sample, 1);
 
             if(PRINT_INPUT_IMAGE) {
                 std::cout << "===Printing input image at grid " << i << " " << j << std::endl;
@@ -133,7 +139,7 @@ int main(int argc, char * argv[]) {
                 double dist;
                 switch(DIST_METHOD) {
                     case 0:
-                        dist = eg::math::rmse(tmp, asciiPNGs[k]);
+                        dist = eg::math::compareMat2d(tmp, asciiPNGs[k], eg::matCmpMethod::logpolar);
                         break;
                     default:
                         throw eg::exceptions::InvalidParameter();
