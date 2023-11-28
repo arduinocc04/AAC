@@ -1,5 +1,5 @@
 /**
- * @file PNGMethods.hpp
+ * @file egMethods.hpp
  * @author Daniel Cho
  * @version 0.0.1
  */
@@ -30,6 +30,10 @@ enum vectorizeMethod {
     line, potrace
 };
 
+enum contourMethod {
+    suzuki
+};
+
 enum distanceMethod {
     taxi
 };
@@ -40,6 +44,14 @@ enum centerlineMethod {
 
 enum paddingMethod {
     zero
+};
+
+enum histCmpMethod {
+    bhattacharyya
+};
+
+enum matCmpMethod {
+    rmse, logpolar
 };
 
 }

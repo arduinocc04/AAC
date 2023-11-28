@@ -19,4 +19,5 @@ using Mat2d = Eigen::Tensor<double, 2>;
 using Dot = std::pair<int, int>;
 using Dots = std::vector<Dot>;
 using Path = Dots;
+using Paths = std::vector<Path>;
 }

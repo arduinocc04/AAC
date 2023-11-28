@@ -1,3 +1,8 @@
+/**
+ * @file egGeometry.cpp
+ * @author Daniel Cho
+ * @version 0.0.1
+ */
 #include "egTypes.hpp"
 #include "egGeometry.hpp"
 

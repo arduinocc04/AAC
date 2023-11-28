@@ -25,3 +25,11 @@ target_include_directories(masking PRIVATE ../../lib/eg)
 add_executable(exCenter extractCenterline.cpp)
 target_link_libraries(exCenter eg)
 target_include_directories(exCenter PRIVATE ../../lib/eg)
+
+add_executable(get-contours get-contours.cpp)
+target_link_libraries(get-contours eg)
+target_include_directories(get-contours PRIVATE ../../lib/eg)
+
+add_executable(histogram histogram.cpp)
+target_link_libraries(histogram eg)
+target_include_directories(histogram PRIVATE ../../lib/eg)
