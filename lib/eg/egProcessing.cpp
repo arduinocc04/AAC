@@ -366,7 +366,7 @@ double logEuclideDist(Dot & a, Dot & b) {
     return std::log(std::sqrt(distSquared));
 }
 
-Mat2d eg::imgproc::logpolar(Dots & dots) {
+Mat2d eg::imgproc::logpolar(Dots & dots, Dot & p) {
     const int tbinCnt = 20;
     const int rbinCnt = 20;
     const double tbinSize = 2*M_PI/tbinCnt;
@@ -375,33 +375,42 @@ Mat2d eg::imgproc::logpolar(Dots & dots) {
     Mat2d histogram(tbinCnt, rbinCnt);
     histogram.setConstant(0);
     for(int i = 0; i < dots.size(); i++) {
-        for(int j = 0; j < dots.size(); j++) {
-            if(i == j) continue;
-            double rho = logEuclideDist(dots[i], dots[j]);
-            double theta = std::atan2(dots[i].second - dots[j].second, dots[i].first - dots[j].first) + M_PI;
-            int ri, ti;
-            if(rho > rbinSize*rbinCnt)
-                ri = rbinCnt - 1;
-            else {
-                for(int i = 1; i <= rbinCnt; i++) {
-                    if(rho <= i*rbinSize) {
-                        ri = i - 1;
-                        break;
-                    }
+        double rho = logEuclideDist(dots[i], p);
+        if(dots[i].first == p.first) continue;
+        double theta = std::atan2(dots[i].second - p.second, dots[i].first - p.first) + M_PI;
+        int ri, ti;
+        if(rho > rbinSize*rbinCnt)
+            ri = rbinCnt - 1;
+        else {
+            for(int i = 1; i <= rbinCnt; i++) {
+                if(rho <= i*rbinSize) {
+                    ri = i - 1;
+                    break;
                 }
             }
-            if(theta > tbinSize*tbinCnt)
-                ti = tbinCnt - 1;
-            else {
-                for(int i = 1; i <= tbinCnt; i++) {
-                    if(theta <= i*tbinSize) {
-                        ti = i - 1;
-                        break;
-                    }
-                }
-            }
-            histogram(ri, ti)++;
         }
+        if(theta > tbinSize*tbinCnt)
+            ti = tbinCnt - 1;
+        else {
+            for(int i = 1; i <= tbinCnt; i++) {
+                if(theta <= i*tbinSize) {
+                    ti = i - 1;
+                    break;
+                }
+            }
+        }
+        histogram(ri, ti)++;
+    }
+    return histogram;
+}
+
+Mat2d eg::imgproc::logpolarAll(Dots & dots) {
+    const int tbinCnt = 20;
+    const int rbinCnt = 20;
+    Mat2d histogram(tbinCnt, rbinCnt);
+    histogram.setConstant(0);
+    for(int i = 0; i < dots.size(); i++) {
+        histogram += logpolar(dots, dots[i]);
     }
     return histogram;
 }
@@ -428,5 +437,18 @@ Mat2d eg::imgproc::grassfire(Mat2d & a, Mat2d & mask) {
         }
     }
 
+    return ans;
+}
+
+Mat2d eg::imgproc::cycle(const Mat2d & a, int stride) {
+    int h = a.dimensions()[0];
+    int w = a.dimensions()[1];
+    Mat2d ans(h, w);
+    for(int i = 0; i < h; i++) {
+        for(int j = 0; j < w - stride; j++)
+            ans(i, j + stride) = a(i, j);
+        for(int j = w - stride; j < w; j++)
+            ans(i, j - (w - stride)) = a(i, j);
+    }
     return ans;
 }

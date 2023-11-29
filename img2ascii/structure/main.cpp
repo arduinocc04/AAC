@@ -139,6 +139,12 @@ int main(int argc, char * argv[]) {
                 double dist;
                 switch(DIST_METHOD) {
                     case 0:
+                        dist = eg::math::compareMat2d(tmp, asciiPNGs[k], eg::matCmpMethod::rmse);
+                        break;
+                    case 1:
+                        dist = eg::math::compareMat2d(tmp, asciiPNGs[k], eg::matCmpMethod::shape);
+                        break;
+                    case 2:
                         dist = eg::math::compareMat2d(tmp, asciiPNGs[k], eg::matCmpMethod::logpolar);
                         break;
                     default:

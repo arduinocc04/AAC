@@ -83,11 +83,14 @@ Mat2d inflate(Mat2d & a, int h, int w);
 
 Image mat2dToImage(Mat2d & a);
 
-Mat2d logpolar(Dots & a);
+Mat2d logpolar(Dots & a, Dot & p);
 
+Mat2d logpolarAll(Dots & a);
 /**
  * @attention the border of mask must zero. If not, if will raise segfault.
  */
-Eigen::Tensor<double, 2> grassfire(Eigen::Tensor<double, 2> & a, Eigen::Tensor<double, 2> & mask);
+Mat2d grassfire(Mat2d & a, Mat2d & mask);
+
+Mat2d cycle(const Mat2d & a, int stride);
 
 }
