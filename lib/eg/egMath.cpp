@@ -6,8 +6,6 @@
 #include <cmath>
 
 #include "egMath.hpp"
-#include "egTypes.hpp"
-#include "egProcessing.hpp"
 
 using namespace eg;
 using namespace Eigen;
@@ -104,7 +102,7 @@ double eg::math::compareMat2d(Mat2d & a, Mat2d & b, int method) {
             Dots dotsConsistA = merge(tmpA.first);
             Dots dotsConsistB = merge(tmpB.first);
 
-            double minVal = 10;
+            double minVal = 10; // because result of bhattacharyya <= 1, 10 is big enough.
             int h = a.dimensions()[0];
             int w = a.dimensions()[1];
             Dots candidates;

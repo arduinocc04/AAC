@@ -20,6 +20,11 @@
 #endif
 #define __EGEXCEPTIONS_H
 
+#ifndef __EGTYPES_H
+#include "egTypes.hpp"
+#endif
+#define __EGTYPES_H
+
 namespace eg {
 
 struct Pixel {
@@ -33,7 +38,6 @@ struct PNGInfo {
     bool initialized;
 };
 
-using Image = Eigen::Tensor<png_byte, 3>;
 /**
  * @class PNG
  * @author Daniel Cho

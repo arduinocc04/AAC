@@ -55,10 +55,16 @@ int main(int argc, char * argv[]) {
     std::cout << "Get edge Image..." << std::endl;
     t = getEdge(t, edgeDetectMethod::gradient);
     t = markOutlier(t, 10);
+    t = dilate(t, 1, 3);
+    t = erode(t, 1, 3);
+    t = dilate(t, 3, 1);
+    t = erode(t, 3, 1);
+    /*
     for(int i = 0; i < 10; i++) {
         std::cout << i + 1 << "/10 blurring Image..." << std::endl;
         t = blur(t, blurMethod::gaussian);
     }
+    */
     std::cout << "get contour.." << std::endl;
     auto ttmp = getContours(t, eg::contourMethod::suzuki);
     Mat2d ans(png.info.height, png.info.width);

@@ -6,10 +6,9 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <queue>
-#include <iostream>
+#include <algorithm>
 
 #include "egProcessing.hpp"
-#include "egTypes.hpp"
 #include "egGeometry.hpp"
 #include "egMath.hpp"
 
@@ -151,7 +150,7 @@ Mat2d eg::imgproc::addPadding(Mat2d & a, int h, int j, int k, int l, int method)
 Mat2d eg::imgproc::inflate(Mat2d & a, int h, int w) {
     int ah = a.dimensions()[0], aw = a.dimensions()[1];
     return imgproc::addPadding(a, 0, h - ah, 0, w - aw,
-                     eg::paddingMethod::zero);
+            eg::paddingMethod::zero);
 }
 
 unsigned char saturate(double x) {
@@ -176,10 +175,10 @@ Image eg::imgproc::mat2dToImage(Mat2d & a) {
 std::pair<Paths, std::vector<int>> getContourSuzuki(Mat2d & bin) {
     int h = bin.dimensions()[0];
     int w = bin.dimensions()[1];
-    Mat2d ans(h, w);
+    Eigen::Tensor<int, 2> ans(h, w);
     for(int i = 0; i < h; i++)
         for(int j = 0; j < w; j++)
-            ans(i, j) = (double)(bin(i, j) > 0);
+            ans(i, j) = bin(i, j) > 0;
 
     int nbd = 1;
     int lnbd;
@@ -293,15 +292,92 @@ std::pair<Paths, std::vector<int>> getContourSuzuki(Mat2d & bin) {
             if(ans(i, j) != 1) lnbd = abs(ans(i, j));
         } // for j
     } // for i
+    bool * calced = new bool[nbd];
+    bool ** used = new bool * [h];
+    for(int i = 0; i < h; i++)
+        used[i] = new bool[w];
+    calced[0] = calced[1] = true;
     for(int i = 0; i < h; i++) {
         for(int j = 0; j < w; j++) {
-            if(ans(i, j) != 0) {
-                int t = abs(ans(i, j));
-                if(t >= borders.size()) borders.push_back({std::make_pair(i, j)});
-                else borders[t].push_back(std::make_pair(i, j));
+            int cnbd = abs(ans(i, j));
+            if(!calced[cnbd]) {
+                for(int k = 0; k < h; k++)
+                    for(int l = 0; l < w; l++)
+                        used[k][l] = false;
+                std::queue<Dot> q;
+
+                used[i][j] = true;
+                calced[cnbd] = true;
+                int last;
+                Path res;
+                res.push_back(std::make_pair(i, j));
+                for(int k = 3; k < 7; k++) { // go below or right
+                    int tx = i + dx8ccw[k];
+                    int ty = j + dy8ccw[k];
+                    if(tx < 0 || tx >= h || ty < 0 || ty >= w)
+                        continue;
+                    if(abs(ans(tx, ty)) == cnbd) {
+                        q.push(std::make_pair(tx, ty));
+                        last = k;
+                        break;
+                    }
+                }
+                while(q.size()) {
+                    Dot tmp = q.front();
+                    res.push_back(tmp);
+                    q.pop();
+                    for(int k = 0; k < 8; k++) {
+                        int tx = tmp.first + dx8ccw[k];
+                        int ty = tmp.second + dy8ccw[k];
+                        if(tx < 0 || tx >= h || ty < 0 || ty >= w || used[tx][ty])
+                            continue;
+                        if(abs(ans(tx, ty)) == cnbd) {
+                            q.push(std::make_pair(tx, ty));
+                            used[tx][ty] = true;
+                            break;
+                        }
+                    }
+                }
+                while(q.size()) q.pop();
+                bool flag = false;
+                for(int k = last + 1; k < 7; k++) {
+                    int tx = i + dx8ccw[k];
+                    int ty = j + dy8ccw[k];
+                    if(tx < 0 || tx >= h || ty < 0 || ty >= w)
+                        continue;
+                    if(abs(ans(tx, ty)) == cnbd && !used[tx][ty]) {
+                        flag = true;
+                        q.push(std::make_pair(tx, ty));
+                        used[tx][ty] = true;
+                        break;
+                    }
+                }
+                if(flag) { // this will change order to clock wise.
+                    std::reverse(res.begin(), res.end());
+                    while(q.size()) {
+                        Dot tmp = q.front();
+                        res.push_back(tmp);
+                        q.pop();
+                        for(int k = 0; k < 8; k++) {
+                            int tx = tmp.first + dx8ccw[k];
+                            int ty = tmp.second + dy8ccw[k];
+                            if(tx < 0 || tx >= h || ty < 0 || ty >= w || used[tx][ty])
+                                continue;
+                            if(abs(ans(tx, ty)) == cnbd) {
+                                q.push(std::make_pair(tx, ty));
+                                used[tx][ty] = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                borders.push_back(res);
             }
         }
     }
+    delete[] calced;
+    for(int i = 0; i < h; i++) delete[] used[i];
+    delete[] used;
     return std::make_pair(borders, p);
 }
 
@@ -361,11 +437,6 @@ Mat2d eg::imgproc::reverse(Mat2d & bin) {
     return ans;
 }
 
-double logEuclideDist(Dot & a, Dot & b) {
-    int distSquared = (a.first - b.first)*(a.first - b.first) + (a.second - b.second)*(a.second - b.second);
-    return std::log(std::sqrt(distSquared));
-}
-
 Mat2d eg::imgproc::logpolar(Dots & dots, Dot & p) {
     const int tbinCnt = 20;
     const int rbinCnt = 20;
@@ -375,7 +446,7 @@ Mat2d eg::imgproc::logpolar(Dots & dots, Dot & p) {
     Mat2d histogram(tbinCnt, rbinCnt);
     histogram.setConstant(0);
     for(int i = 0; i < dots.size(); i++) {
-        double rho = logEuclideDist(dots[i], p);
+        double rho = eg::geo::logEuclideDist(dots[i], p);
         if(dots[i].first == p.first) continue;
         double theta = std::atan2(dots[i].second - p.second, dots[i].first - p.first) + M_PI;
         int ri, ti;
@@ -433,7 +504,7 @@ Mat2d eg::imgproc::grassfire(Mat2d & a, Mat2d & mask) {
         for(int j = w - 1; j >= 0; j--) {
             if(mask(i, j) && a(i, j) > 0)
                 ans(i, j) = std::min(ans(i, j),
-                                     1 + std::min(ans(i + 1, j), ans(i, j + 1)));
+                        1 + std::min(ans(i + 1, j), ans(i, j + 1)));
         }
     }
 
@@ -452,3 +523,109 @@ Mat2d eg::imgproc::cycle(const Mat2d & a, int stride) {
     }
     return ans;
 }
+
+/*
+void eg::imgproc::drawSegmentDirect(Mat2d & a, const Segment & s, int val) {
+    const int N = 1000;
+    a(s.first.first, s.first.second) = 127;
+    a(s.second.first, s.second.second) = 127;
+    for(int i = 0; i < N; i++) {
+        int cx = (1 - (float)i/N)*s.first.first + (float)i/N*s.second.first;
+        int cy = (1 - (float)i/N)*s.first.second + (float)i/N*s.second.second;
+        a(cx, cy) = val;
+    }
+}
+*/
+
+void eg::imgproc::drawSegmentDirect(Mat2d & a, const Segment & s, int val) {
+    int dx = abs((s.first - s.second).first);
+    int sx = (s.first.first < s.second.first)?1:-1;
+    int dy = -abs((s.first - s.second).second);
+    int sy = (s.first.second < s.second.second)?1:-1;
+    int err = dx + dy;
+    Dot tmp = s.first;
+    while(true) {
+        a(tmp.first, tmp.second) = val;
+        if(tmp == s.second) break;
+
+        int e2 = 2*err;
+        if(e2 >= dy) {
+            if(tmp.first == s.second.first) break;
+            err = err + dy;
+            tmp.first += sx;
+        }
+        if(e2 <= dx) {
+            if(tmp.second == s.second.second) break;
+            err = err + dx;
+            tmp.second += sy;
+        }
+    }
+
+}
+
+Mat2d eg::imgproc::drawSegment(const Mat2d & a, const Segment & s, int val) {
+    Mat2d ans(a.dimensions());
+    for(int i = 0; i < a.dimensions()[0]; i++)
+        for(int j = 0; j < a.dimensions()[1]; j++)
+            ans(i, j) = a(i, j);
+    drawSegmentDirect(ans, s, val);
+    return ans;
+}
+
+Mat2d eg::imgproc::erode(Mat2d & bin, int kh, int kw) {
+    int h = bin.dimensions()[0];
+    int w = bin.dimensions()[1];
+    Mat2d ans(h, w);
+    if((kh % 2 == 0) || (kw % 2 == 0))
+        throw eg::exceptions::InvalidParameter();
+    for(int i = 0; i < h; i++) {
+        for(int j = 0; j < w; j++) {
+            bool flag = true;
+            for(int dx = -kh/2; dx <= kh/2; dx++) {
+                if(i + dx < 0 || i + dx >= h)
+                    continue;
+                for(int dy = -kw/2; dy <= kw/2; dy++) {
+                    if(j + dy < 0 || j + dy >= w)
+                        continue;
+                    if(bin(i + dx, j + dy) == 0) {
+                        flag = false;
+                    }
+                }
+                if(!flag) break;
+            }
+            if(flag) ans(i, j) = 1;
+            else ans(i, j) = 0;
+        }
+    }
+    return ans;
+}
+
+Mat2d eg::imgproc::dilate(Mat2d & bin, int kh, int kw) {
+    int h = bin.dimensions()[0];
+    int w = bin.dimensions()[1];
+    Mat2d ans(h, w);
+    if((kh % 2 == 0) || (kw % 2 == 0))
+        throw eg::exceptions::InvalidParameter();
+    for(int i = 0; i < h; i++) {
+        for(int j = 0; j < w; j++) {
+            bool flag = false;
+            for(int dx = -kh/2; dx <= kh/2; dx++) {
+                if(i + dx < 0 || i + dx >= h)
+                    continue;
+                for(int dy = -kw/2; dy <= kw/2; dy++) {
+                    if(j + dy < 0 || j + dy >= w)
+                        continue;
+                    if(bin(i + dx, j + dy) > 0) {
+                        flag = true;
+                        break;
+                    }
+                }
+                if(flag) break;
+            }
+            if(flag) ans(i, j) = 1;
+            else ans(i, j) = 0;
+        }
+    }
+    return ans;
+}
+

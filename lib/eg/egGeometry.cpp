@@ -3,23 +3,23 @@
  * @author Daniel Cho
  * @version 0.0.1
  */
-#include "egTypes.hpp"
 #include "egGeometry.hpp"
 
 using namespace eg;
 
 int eg::geo::ccw(const Dot & a, const Dot & b, const Dot & c) {
-    int x1 = a.first;
-    int y1 = a.second;
-    int x2 = b.first;
-    int y2 = b.second;
-    int x3 = c.first;
-    int y3 = c.second;
-
-    int  t = (x2 - x1)*(y3 - y1) - (x3 - x1)*(y2 - y1);
+    double t = cross(b - a, c - a);
     if(t > 0) return 1;
     else if(t < 0) return -1;
     return 0;
+}
+
+double eg::geo::dot(const Vec2 & a, const Vec2 & b) {
+    return a.first*b.first + a.second*b.second;
+}
+
+double eg::geo::cross(const Vec2 & a, const Vec2 & b) {
+	return a.first*b.second - a.second*b.first;
 }
 
 bool eg::geo::isPointInsideHull(const Dot & p, const std::vector<Dot> & hull, bool includeBorder) {
@@ -67,3 +67,18 @@ Dots eg::geo::getConvexHull(Dots & a) {
     return hull;
 }
 
+double eg::geo::euclideDist(Dot & a, Dot & b) {
+	return std::sqrt(dot(a - b, a - b));
+}
+
+double eg::geo::logEuclideDist(Dot & a, Dot & b) {
+    return std::log(euclideDist(a, b));
+}
+
+double eg::geo::distSegDot(Segment & a, Dot & p) {
+	Vec2 base = a.second - a.first;
+    if(dot(base, p - a.first) <= 0 || dot(-base, p - a.second) <= 0) // can't draw vertical line
+
+		return std::min(euclideDist(a.first, p), euclideDist(a.second, p));
+	return abs(cross(p - a.first, a.second - a.first))/euclideDist(a.first, a.second);
+}

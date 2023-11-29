@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 #depends: grim
 #use kitty in fullscreen.
-
+sleeptime=0.02
 if [[ $3 == "" ]]; then
     echo hex or n!! use program correctly.
     echo If you need to capture special character, you may need hex. Otherwise, use n.
@@ -17,36 +17,36 @@ do
     if [[ $3 == hex ]]; then
         if [[ $c == \' ]]; then
             echo -n -e "\r'"
-            sleep 0.01
+            sleep $sleeptime
             echo $pos | grim -g - "$2/=27.png"
         else
             if [[ $c == \" ]]; then
                 echo -n -e "\r\""
-                sleep 0.01
+                sleep $sleeptime
                 echo $pos | grim -g - "$2/=22.png"
             else
                 if [[ $c == \` ]]; then
                     echo -n -e "\r\`"
-                    sleep 0.01
+                    sleep $sleeptime
                     echo $pos | grim -g - "$2/=60.png"
                 else
                     if [[ $c == \\ ]]; then
                         echo -n -e "\r\\"
-                        sleep 0.01
+                        sleep $sleeptime
                         echo $pos | grim -g - "$2/=5c.png"
                     else
                         if [[ $c == "*" ]]; then
                             echo -n -e "\r*"
-                            sleep 0.01
+                            sleep $sleeptime
                             echo $pos | grim -g - "$2/=2a.png"
                         else
                             if [[ $c == \# ]]; then
                                 echo -n -e "\r#"
-                                sleep 0.01
+                                sleep $sleeptime
                                 echo $pos | grim -g - "$2/=23.png"
                             else
                                 echo -e -n "\r$c"
-                                sleep 0.01
+                                sleep $sleeptime
                                 echo $pos | grim -g - "$2/=`echo -n $c | od -A n -t  x1 | sed 's/ *//g'`.png"
                             fi
                         fi

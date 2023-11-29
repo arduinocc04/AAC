@@ -38,3 +38,11 @@ add_executable(cycle-image-and-comp cycle-image-and-comp.cpp)
 target_link_libraries(cycle-image-and-comp eg)
 target_include_directories(cycle-image-and-comp PRIVATE ../../lib/eg)
 
+add_executable(approx-border approx-border.cpp)
+target_link_libraries(approx-border eg)
+target_include_directories(approx-border PRIVATE ../../lib/eg)
+
+add_executable(morph-gray morph-gray.cpp)
+target_link_libraries(morph-gray eg)
+target_include_directories(morph-gray PRIVATE ../../lib/eg)
+
