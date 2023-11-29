@@ -26,10 +26,6 @@ enum blurMethod {
     gaussian
 };
 
-enum vectorizeMethod {
-    line, potrace
-};
-
 enum contourMethod {
     suzuki
 };
@@ -52,6 +48,10 @@ enum histCmpMethod {
 
 enum matCmpMethod {
     rmse, shape, logpolar
+};
+
+enum pathDecomMethod {
+    greedy, potrace
 };
 
 }

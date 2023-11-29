@@ -11,7 +11,7 @@
 #include "egProcessing.hpp"
 #include "egMath.hpp"
 
-#define DIST_METHOD 0 // 0: RMSE
+#define DIST_METHOD 2 // 0: RMSE
 #define PRINT_INPUT_IMAGE 0
 
 #define INF 987654321

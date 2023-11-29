@@ -13,7 +13,13 @@
 #endif
 #define __Tensor
 
+#ifndef __EGTYPES_H
 #include "egTypes.hpp"
+#endif
+#define __EGTYPES_H
+
+#include "egProcessing.hpp"
+
 using namespace eg;
 
 #include <vector>

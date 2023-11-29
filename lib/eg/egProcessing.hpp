@@ -8,8 +8,15 @@
 
 #include "unsupported/Eigen/CXX11/Tensor"
 
+#ifndef __EGMETHODS_H
 #include "egMethods.hpp"
+#endif
+#define __EGMETHODS_H
+
+#ifndef __EGTYPES_H
 #include "egTypes.hpp"
+#endif
+#define __EGTYPES_H
 
 #ifndef __EGEXCEPTIONS_H
 #include "egExceptions.hpp"
@@ -86,6 +93,7 @@ Image mat2dToImage(Mat2d & a);
 Mat2d logpolar(Dots & a, Dot & p);
 
 Mat2d logpolarAll(Dots & a);
+
 /**
  * @attention the border of mask must zero. If not, if will raise segfault.
  */
@@ -93,4 +101,11 @@ Mat2d grassfire(Mat2d & a, Mat2d & mask);
 
 Mat2d cycle(const Mat2d & a, int stride);
 
+/**
+ * @breif draw segment using Bresenham's line algorithm
+ * @see https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+ */
+Mat2d drawSegment(const Mat2d & a, const Segment & s, int val);
+
+void drawSegmentDirect(Mat2d & a, const Segment & s, int val);
 }

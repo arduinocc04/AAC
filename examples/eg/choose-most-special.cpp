@@ -70,7 +70,7 @@ Mat2d * getAllImages(std::string path, int fCnt) {
 void fillRmse(Eigen::Tensor<double, 2> & rmses, int iStart, int iEnd, int jEnd, Mat2d * pngs) {
     for(int i = 0; i < iEnd; i++)
         for(int j = i + 1; j < jEnd; j++)
-            rmses(i, j) = eg::math::compareMat2d(pngs[i], pngs[j], eg::matCmpMethod::shape);
+            rmses(i, j) = eg::math::compareMat2d(pngs[i], pngs[j], eg::matCmpMethod::logpolar);
 }
 
 int main(int argc, char * argv[]) {
