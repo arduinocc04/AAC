@@ -40,7 +40,7 @@ int main(int argc, char * argv[]) {
     }
 
     std::cout << "Generaing logpolar of dots1: " << dots1.size() << std::endl;
-    Mat2d h1 = eg::imgproc::logpolar(dots1);
+    Mat2d h1 = eg::imgproc::logpolarAll(dots1);
     std::cout << "generated\n";
 
     png.openImage(argv[2]);
@@ -58,7 +58,7 @@ int main(int argc, char * argv[]) {
             dots2.push_back(tmp.first[i][j]);
 
     std::cout << "Generaing logpolar of dots2: " << dots2.size() << std::endl;
-    Mat2d h2 = eg::imgproc::logpolar(dots2);
+    Mat2d h2 = eg::imgproc::logpolarAll(dots2);
     std::cout << "generated\n";
 
     std::cout << "===========Histo 1" << std::endl;

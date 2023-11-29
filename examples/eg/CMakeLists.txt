@@ -33,3 +33,8 @@ target_include_directories(get-contours PRIVATE ../../lib/eg)
 add_executable(histogram histogram.cpp)
 target_link_libraries(histogram eg)
 target_include_directories(histogram PRIVATE ../../lib/eg)
+
+add_executable(cycle-image-and-comp cycle-image-and-comp.cpp)
+target_link_libraries(cycle-image-and-comp eg)
+target_include_directories(cycle-image-and-comp PRIVATE ../../lib/eg)
+

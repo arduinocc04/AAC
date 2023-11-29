@@ -89,14 +89,35 @@ double eg::math::compareMat2d(Mat2d & a, Mat2d & b, int method) {
     switch(method) {
         case eg::matCmpMethod::rmse:
             return calcrmse(a, b);
+        case eg::matCmpMethod::shape: {
+            std::pair<Paths, std::vector<int>> tmpA = eg::imgproc::getContours(a, eg::contourMethod::suzuki);
+            std::pair<Paths, std::vector<int>> tmpB = eg::imgproc::getContours(b, eg::contourMethod::suzuki);
+            Dots dotsConsistA = merge(tmpA.first);
+            Dots dotsConsistB = merge(tmpB.first);
+            Mat2d histogramA = eg::imgproc::logpolarAll(dotsConsistA);
+            Mat2d histogramB = eg::imgproc::logpolarAll(dotsConsistB);
+            return compareHistogram(histogramA, histogramB, eg::histCmpMethod::bhattacharyya);
+        }
         case eg::matCmpMethod::logpolar: {
             std::pair<Paths, std::vector<int>> tmpA = eg::imgproc::getContours(a, eg::contourMethod::suzuki);
             std::pair<Paths, std::vector<int>> tmpB = eg::imgproc::getContours(b, eg::contourMethod::suzuki);
-            Dots dotsConsistsA = merge(tmpA.first);
-            Dots dotsConsistsB = merge(tmpB.first);
-            Mat2d histogramA = eg::imgproc::logpolar(dotsConsistA);
-            Mat2d histogramB = eg::imgproc::logpolar(dotsConsistB);
-            return compareHistogram(histogramA, histogramB, eg::histCmpMethod::bhattacharyya);
+            Dots dotsConsistA = merge(tmpA.first);
+            Dots dotsConsistB = merge(tmpB.first);
+
+            double minVal = 10;
+            int h = a.dimensions()[0];
+            int w = a.dimensions()[1];
+            Dots candidates;
+            candidates.push_back(std::make_pair(0, 0));
+            candidates.push_back(std::make_pair(0, w));
+            candidates.push_back(std::make_pair(h, 0));
+            candidates.push_back(std::make_pair(h, w));
+            for(int i = 0; i < candidates.size(); i++) {
+                Mat2d histogramA = eg::imgproc::logpolar(dotsConsistA, candidates[i]);
+                Mat2d histogramB = eg::imgproc::logpolar(dotsConsistB, candidates[i]);
+                minVal = std::min(minVal, compareHistogram(histogramA, histogramB, eg::histCmpMethod::bhattacharyya));
+            }
+            return minVal;
         }
         default:
             throw eg::exceptions::InvalidParameter();

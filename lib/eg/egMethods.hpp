@@ -51,7 +51,7 @@ enum histCmpMethod {
 };
 
 enum matCmpMethod {
-    rmse, logpolar
+    rmse, shape, logpolar
 };
 
 }
