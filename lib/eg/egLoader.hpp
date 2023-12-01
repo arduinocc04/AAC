@@ -67,7 +67,7 @@ public:
      */
     void openImage(std::string _inputPath);
 
-    void setImage(Image & a);
+    void setImage(const Image & a);
 
     /**
      * @brief get pointer of image

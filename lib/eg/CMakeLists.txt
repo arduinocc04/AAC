@@ -4,6 +4,7 @@ add_library(eg
     egMath.cpp
     egOperators.cpp
     egProcessing.cpp
+    egTool.cpp
     egTrace.cpp
 )
 set_target_properties(eg PROPERTIES VERSION 0.0.1)

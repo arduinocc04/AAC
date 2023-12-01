@@ -11,12 +11,14 @@
 #include "egProcessing.hpp"
 #include "egGeometry.hpp"
 #include "egMath.hpp"
+#include "egTrace.hpp"
+#include "egTool.hpp"
 
 using namespace eg;
 using namespace eg::imgproc;
 using namespace eg::geo;
 
-Mat2d eg::imgproc::binary(Mat2d & gray, double threshold) {
+Mat2d eg::imgproc::binary(const Mat2d & gray, double threshold) {
     int h = gray.dimensions()[0];
     int w = gray.dimensions()[1];
     Mat2d bin(h, w);
@@ -27,7 +29,7 @@ Mat2d eg::imgproc::binary(Mat2d & gray, double threshold) {
     return bin;
 }
 
-Mat2d eg::imgproc::getMask(Mat2d & gray) {
+Mat2d eg::imgproc::getMask(const Mat2d & gray) {
     int h = gray.dimensions()[0];
     int w = gray.dimensions()[1];
     Dots candidates;
@@ -48,7 +50,7 @@ Mat2d eg::imgproc::getMask(Mat2d & gray) {
     return ans;
 }
 
-Mat2d blurGaussian(Mat2d & gray) {
+Mat2d blurGaussian(const Mat2d & gray) {
     Mat2d kernel(3, 3);
     kernel(0, 0) = (double)1/16, kernel(0, 1) = (double)2/16, kernel(0, 2) = (double)1/16;
     kernel(1, 0) = (double)2/16, kernel(1, 1) = (double)4/16, kernel(1, 2) = (double)2/16;
@@ -56,7 +58,7 @@ Mat2d blurGaussian(Mat2d & gray) {
     return eg::math::conv(gray, kernel);
 }
 
-Mat2d eg::imgproc::blur(Mat2d & gray, int method) {
+Mat2d eg::imgproc::blur(const Mat2d & gray, int method) {
     switch(method) {
         case eg::blurMethod::gaussian:
             return blurGaussian(gray);
@@ -65,7 +67,7 @@ Mat2d eg::imgproc::blur(Mat2d & gray, int method) {
     }
 }
 
-Mat2d cvtGrayMean(Image & imageRGBA) {
+Mat2d cvtGrayMean(const Image & imageRGBA) {
     if(!imageRGBA.data())
         throw eg::exceptions::ImageNotOpened();
 
@@ -84,7 +86,7 @@ Mat2d cvtGrayMean(Image & imageRGBA) {
     return gray;
 }
 
-Mat2d eg::imgproc::cvtGray(Image & imageRGBA, int method) {
+Mat2d eg::imgproc::cvtGray(const Image & imageRGBA, int method) {
     switch(method) {
         case eg::grayCvtMethod::mean:
             return cvtGrayMean(imageRGBA);
@@ -93,7 +95,7 @@ Mat2d eg::imgproc::cvtGray(Image & imageRGBA, int method) {
     }
 }
 
-Mat2d getEdgeGrad(Mat2d & gray) {
+Mat2d getEdgeGrad(const Mat2d & gray) {
     Eigen::Tensor<double, 2> kernel(3, 3);
     kernel(0, 0) = -1, kernel(0, 1) = -1, kernel(0, 2) = -1;
     kernel(1, 0) = -1, kernel(1, 1) =  8, kernel(1, 2) = -1;
@@ -102,7 +104,7 @@ Mat2d getEdgeGrad(Mat2d & gray) {
     return eg::math::conv(gray, kernel);
 }
 
-Mat2d eg::imgproc::getEdge(Mat2d & gray, int method) {
+Mat2d eg::imgproc::getEdge(const Mat2d & gray, int method) {
     switch(method) {
         case eg::edgeDetectMethod::gradient:
             return getEdgeGrad(gray);
@@ -111,12 +113,12 @@ Mat2d eg::imgproc::getEdge(Mat2d & gray, int method) {
     }
 }
 
-Mat2d extCenterlineGrassfire(Mat2d & bin) {
+Mat2d extCenterlineGrassfire(const Mat2d & bin) {
     Mat2d mask = imgproc::getMask(bin);
     return eg::imgproc::grassfire(bin, mask);
 }
 
-Mat2d eg::imgproc::extractCenterline(Mat2d & bin, int method) {
+Mat2d eg::imgproc::extractCenterline(const Mat2d & bin, int method) {
     switch(method) {
         case eg::centerlineMethod::grassfire:
             return extCenterlineGrassfire(bin);
@@ -125,7 +127,7 @@ Mat2d eg::imgproc::extractCenterline(Mat2d & bin, int method) {
     }
 }
 
-Mat2d addZeroPadding(Mat2d & a, int h, int j, int k, int l) {
+Mat2d addZeroPadding(const Mat2d & a, int h, int j, int k, int l) {
     int ah = a.dimensions()[0];
     int aw = a.dimensions()[1];
     Mat2d res(ah + j + k, aw + h + l);
@@ -136,7 +138,7 @@ Mat2d addZeroPadding(Mat2d & a, int h, int j, int k, int l) {
     return res;
 }
 
-Mat2d eg::imgproc::addPadding(Mat2d & a, int h, int j, int k, int l, int method) {
+Mat2d eg::imgproc::addPadding(const Mat2d & a, int h, int j, int k, int l, int method) {
     if(h < 0 || j < 0 || k < 0 || l < 0)
         throw eg::exceptions::InvalidParameter();
     switch(method) {
@@ -147,7 +149,7 @@ Mat2d eg::imgproc::addPadding(Mat2d & a, int h, int j, int k, int l, int method)
     }
 }
 
-Mat2d eg::imgproc::inflate(Mat2d & a, int h, int w) {
+Mat2d eg::imgproc::inflate(const Mat2d & a, int h, int w) {
     int ah = a.dimensions()[0], aw = a.dimensions()[1];
     return imgproc::addPadding(a, 0, h - ah, 0, w - aw,
             eg::paddingMethod::zero);
@@ -159,7 +161,7 @@ unsigned char saturate(double x) {
     return (unsigned char)x;
 }
 
-Image eg::imgproc::mat2dToImage(Mat2d & a) {
+Image eg::imgproc::mat2dToImage(const Mat2d & a) {
     int h = a.dimensions()[0];
     int w = a.dimensions()[1];
     Image res(h, w, 4);
@@ -172,7 +174,7 @@ Image eg::imgproc::mat2dToImage(Mat2d & a) {
     return res;
 }
 
-std::pair<Paths, std::vector<int>> getContourSuzuki(Mat2d & bin) {
+std::pair<Paths, std::vector<int>> getContourSuzuki(const Mat2d & bin) {
     int h = bin.dimensions()[0];
     int w = bin.dimensions()[1];
     Eigen::Tensor<int, 2> ans(h, w);
@@ -381,7 +383,7 @@ std::pair<Paths, std::vector<int>> getContourSuzuki(Mat2d & bin) {
     return std::make_pair(borders, p);
 }
 
-std::pair<Paths, std::vector<int>> eg::imgproc::getContours(Mat2d & bin, int method) {
+std::pair<Paths, std::vector<int>> eg::imgproc::getContours(const Mat2d & bin, int method) {
     switch(method) {
         case eg::contourMethod::suzuki:
             return getContourSuzuki(bin);
@@ -390,7 +392,7 @@ std::pair<Paths, std::vector<int>> eg::imgproc::getContours(Mat2d & bin, int met
     }
 }
 
-Mat2d eg::imgproc::saturate(Mat2d & gray) {
+Mat2d eg::imgproc::saturate(const Mat2d & gray) {
     int h = gray.dimensions()[0];
     int w = gray.dimensions()[1];
     Mat2d ans(h, w);
@@ -407,7 +409,7 @@ Mat2d eg::imgproc::saturate(Mat2d & gray) {
     return ans;
 }
 
-Mat2d eg::imgproc::markOutlier(Mat2d & gray, double threshold) {
+Mat2d eg::imgproc::markOutlier(const Mat2d & gray, double threshold) {
     int h = gray.dimensions()[0];
     int w = gray.dimensions()[1];
     Mat2d ans(h, w);
@@ -422,7 +424,7 @@ Mat2d eg::imgproc::markOutlier(Mat2d & gray, double threshold) {
     return ans;
 }
 
-Mat2d eg::imgproc::reverse(Mat2d & bin) {
+Mat2d eg::imgproc::reverse(const Mat2d & bin) {
     int h = bin.dimensions()[0];
     int w = bin.dimensions()[1];
     Mat2d ans(h, w);
@@ -437,7 +439,7 @@ Mat2d eg::imgproc::reverse(Mat2d & bin) {
     return ans;
 }
 
-Mat2d eg::imgproc::logpolar(Dots & dots, Dot & p) {
+Mat2d eg::imgproc::logpolar(const Dots & dots, const Dot & p) {
     const int tbinCnt = 20;
     const int rbinCnt = 20;
     const double tbinSize = 2*M_PI/tbinCnt;
@@ -475,7 +477,7 @@ Mat2d eg::imgproc::logpolar(Dots & dots, Dot & p) {
     return histogram;
 }
 
-Mat2d eg::imgproc::logpolarAll(Dots & dots) {
+Mat2d eg::imgproc::logpolarAll(const Dots & dots) {
     const int tbinCnt = 20;
     const int rbinCnt = 20;
     Mat2d histogram(tbinCnt, rbinCnt);
@@ -486,7 +488,7 @@ Mat2d eg::imgproc::logpolarAll(Dots & dots) {
     return histogram;
 }
 
-Mat2d eg::imgproc::grassfire(Mat2d & a, Mat2d & mask) {
+Mat2d eg::imgproc::grassfire(const Mat2d & a, const Mat2d & mask) {
     if(a.dimensions() != mask.dimensions())
         throw exceptions::InvalidParameter();
     Mat2d ans(a.dimensions());
@@ -524,19 +526,6 @@ Mat2d eg::imgproc::cycle(const Mat2d & a, int stride) {
     return ans;
 }
 
-/*
-void eg::imgproc::drawSegmentDirect(Mat2d & a, const Segment & s, int val) {
-    const int N = 1000;
-    a(s.first.first, s.first.second) = 127;
-    a(s.second.first, s.second.second) = 127;
-    for(int i = 0; i < N; i++) {
-        int cx = (1 - (float)i/N)*s.first.first + (float)i/N*s.second.first;
-        int cy = (1 - (float)i/N)*s.first.second + (float)i/N*s.second.second;
-        a(cx, cy) = val;
-    }
-}
-*/
-
 void eg::imgproc::drawSegmentDirect(Mat2d & a, const Segment & s, int val) {
     int dx = abs((s.first - s.second).first);
     int sx = (s.first.first < s.second.first)?1:-1;
@@ -572,7 +561,7 @@ Mat2d eg::imgproc::drawSegment(const Mat2d & a, const Segment & s, int val) {
     return ans;
 }
 
-Mat2d eg::imgproc::erode(Mat2d & bin, int kh, int kw) {
+Mat2d eg::imgproc::erode(const Mat2d & bin, int kh, int kw) {
     int h = bin.dimensions()[0];
     int w = bin.dimensions()[1];
     Mat2d ans(h, w);
@@ -600,7 +589,7 @@ Mat2d eg::imgproc::erode(Mat2d & bin, int kh, int kw) {
     return ans;
 }
 
-Mat2d eg::imgproc::dilate(Mat2d & bin, int kh, int kw) {
+Mat2d eg::imgproc::dilate(const Mat2d & bin, int kh, int kw) {
     int h = bin.dimensions()[0];
     int w = bin.dimensions()[1];
     Mat2d ans(h, w);
@@ -629,3 +618,67 @@ Mat2d eg::imgproc::dilate(Mat2d & bin, int kh, int kw) {
     return ans;
 }
 
+Mat2d eg::imgproc::drawSegments(const Mat2d & a, const Segments & ss, int val) {
+    int h = a.dimensions()[0];
+    int w = a.dimensions()[1];
+    Mat2d ans(h, w);
+    for(int i = 0; i < h; i++)
+        for(int j = 0; j < w; j++)
+            ans(i, j) = a(i, j);
+
+    for(int i = 0; i < ss.size(); i++) {
+        drawSegmentDirect(ans, ss[i], val);
+    }
+    return ans;
+}
+
+Mat2d eg::imgproc::approxUsingSegments(const Mat2d & a) {
+    int h = a.dimensions()[0];
+    int w = a.dimensions()[1];
+    Mat2d ans(h, w);
+    ans.setConstant(0);
+
+    auto ttmp = getContours(a, eg::contourMethod::suzuki);
+    for(int i = 0; i < ttmp.first.size(); i++) {
+        if(!ttmp.first[i].size()) continue;
+        Segments tmp = eg::trace::decomposePathToSegments(ttmp.first[i], eg::pathDecomMethod::greedy);
+        for(int j = 0; j < tmp.size(); j++)
+            drawSegmentDirect(ans, tmp[j], 1);
+    }
+    return ans;
+}
+
+Mat2d resizeVector(const Mat2d & bin, int targetH, int targetW) {
+    int h = bin.dimensions()[0];
+    int w = bin.dimensions()[1];
+
+    Mat2d ans(targetH, targetW);
+    ans.setConstant(0);
+
+    double hRatio = (double)targetH/h;
+    double wRatio = (double)targetW/w;
+
+    auto ttmp = getContours(bin, eg::contourMethod::suzuki);
+    for(int i = 0; i < ttmp.first.size(); i++) {
+        if(!ttmp.first[i].size()) continue;
+        Segments tmp = eg::trace::decomposePathToSegments(ttmp.first[i], eg::pathDecomMethod::greedy);
+        for(int j = 0; j < tmp.size(); j++) {
+            tmp[j].first.first = round(tmp[j].first.first*hRatio);
+            tmp[j].second.first = round(tmp[j].second.first*hRatio);
+            tmp[j].first.second = round(tmp[j].first.second*wRatio);
+            tmp[j].second.second = round(tmp[j].second.second*wRatio);
+            drawSegmentDirect(ans, tmp[j], 1);
+        }
+    }
+    return ans;
+}
+
+Mat2d eg::imgproc::resizeImage(const Mat2d & bin, int method, int targetH, int targetW) {
+    switch(method) {
+        case eg::resizeMethod::vector: {
+            return resizeVector(bin, targetH, targetW);
+        }
+        default:
+            throw eg::exceptions::InvalidParameter();
+    }
+}
