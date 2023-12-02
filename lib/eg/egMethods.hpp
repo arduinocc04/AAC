@@ -54,4 +54,8 @@ enum pathDecomMethod {
     greedy, potrace
 };
 
+enum resizeMethod {
+    vector
+};
+
 }

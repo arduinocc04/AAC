@@ -47,7 +47,7 @@ Mat2d * getAllImages(std::string path, int fCnt) {
         names[i] = entry.path();
         Image t = png.copy();
         ans[i] = cvtGray(t, eg::grayCvtMethod::mean);
-        ans[i] = binary(ans[i], 70);
+        ans[i] = markOutlier(ans[i], 70); // 70 is founded by experiment.
         i += 1;
     }
     std::cout << std::endl;
@@ -68,7 +68,7 @@ std::string getAsciiFromPath(std::string path) {
 }
 
 int main(int argc, char * argv[]) {
-    if(argc != 3) {
+    if(argc != 5 && argc != 4) {
         std::cout << "Use Program Properly! program ASCII_IMAGES_PATH INPUT_IMAGE_PATH" << std::endl;
         return -1;
     }
@@ -93,17 +93,39 @@ int main(int argc, char * argv[]) {
     Mat2d t = cvtGray(i, eg::grayCvtMethod::mean);
     std::cout << "Getting Edge of input image" << std::endl;
     t = getEdge(t, eg::edgeDetectMethod::gradient);
-    //t = markOutlier(t, 10);
+    t = markOutlier(t, 10);
+    /*
     for(int i = 0; i < 10; i++) {
         std::cout << i + 1 << "/10 blurring input image" << std::endl;
         t = blur(t, eg::blurMethod::gaussian);
     }
-    std::cout << "Get Binary of input image" << std::endl;
-    t = binary(t, 10);
+    */
+    t = dilate(t, 1, 3);
+    t = erode(t, 1, 3);
+    t = dilate(t, 3, 1);
+    t = erode(t, 3, 1);
+    std::cout << "Get approx of image" << std::endl;
+    // t = binary(t, 10);
     //t = getContours(t, -1);
     //t = markOutlier(t, 1);
-    i = mat2dToImage(t);
+    // t = approxUsingSegments(t);
+    int targetH, targetW;
+    if(argc == 5) {
+        targetH = std::stoi(argv[3]);
+        targetW = std::stoi(argv[4]);
+            }
+    else { // argc == 4
+        double ratio = std::stod(argv[3]);
+        targetH = inputImage.info.height*ratio;
+        targetW = inputImage.info.width*ratio;
+    }
+    inputImage.info.height = targetH;
+    inputImage.info.width = targetW;
+    t = resizeImage(t, eg::resizeMethod::vector, targetH, targetW);
+    Mat2d ttmp = 255*t;
+    i = mat2dToImage(ttmp);
     inputImage.setImage(i);
+    inputImage.saveImage("asdf.png");
     inputImage.divideImageByLength(asciih, asciiw);
 
     int gcCnt = inputImage.getGridColCnt();
@@ -111,31 +133,34 @@ int main(int argc, char * argv[]) {
 
     std::cout << gcCnt << "x" << grCnt << std::endl;
 
-    char null[10];
+    char devnull[10];
 
     for(int i = 0; i < grCnt; i++) {
         for(int j = 0; j < gcCnt; j++) {
             Image raw = inputImage.getImageAtGrid(i, j);
             Mat2d sample = cvtGray(raw, eg::grayCvtMethod::mean);
+            sample = eg::imgproc::grassfire(sample, sample);
             //sample = getEdge(sample, eg::edgeDetectMethod::gradient);
             //sample = getContours(sample, -1);
             //sample = markOutlier(sample, 1);
 
-            if(PRINT_INPUT_IMAGE) {
-                std::cout << "===Printing input image at grid " << i << " " << j << std::endl;
-                print(sample);
-                std::cin >> null;
-            }
-
             Eigen::Tensor<double, 0> tmp = sample.sum();
-            if(tmp(0) < asciih*asciiw/10) {
+            if(tmp(0) < 2) {
                 std::cout << " ";
                 continue;
             }
+            if(PRINT_INPUT_IMAGE) {
+                std::cout << "===Printing input image at grid " << i << " " << j << std::endl;
+                print(sample);
+                std::cin >> devnull;
+            }
             double minVal = INF;
             int minIndex = -1;
+            // std::cout << "FCNT" << fCnt << std::endl;
             for(int k = 0; k < fCnt; k++) {
                 Mat2d tmp = inflate(sample, asciih, asciiw);
+                // std::cout << "asciiPNG " << names[k] << std::endl;
+                // print(asciiPNGs[k]);
                 double dist;
                 switch(DIST_METHOD) {
                     case 0:

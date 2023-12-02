@@ -52,9 +52,9 @@ bool eg::PNG::isPNG() {
     return ans;
 }
 
-void eg::PNG::setImage(eg::Image & a) {
-    int h = image.dimensions()[0];
-    int w = image.dimensions()[1];
+void eg::PNG::setImage(const eg::Image & a) {
+    int h = info.height;
+    int w = info.width;
     if(h != a.dimensions()[0] || w != a.dimensions()[1])
         throw eg::exceptions::InvalidParameter();
 
