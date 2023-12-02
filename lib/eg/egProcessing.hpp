@@ -36,36 +36,39 @@ namespace eg::imgproc {
  * @throws InvalidFormat
  * @throws InvalidParameter
  */
-Mat2d cvtGray(Image & imageRGBA, int method);
+Mat2d cvtGray(const Image & imageRGBA, int method);
 
  /**
   * @brief get Edge of playground.
   * @attention This will change playground and opened image.
   */
-Mat2d getEdge(Mat2d & gray, int method);
+Mat2d getEdge(const Mat2d & gray, int method);
 
 /**
  * @brief blur playground.
  * @attention This will change playground and opened image
  */
-Mat2d blur(Mat2d & gray, int method);
+Mat2d blur(const Mat2d & gray, int method);
 
-Mat2d binary(Mat2d & gray, double threshold);
+Mat2d binary(const Mat2d & gray, double threshold);
 
-Mat2d extractCenterline(Mat2d & bin, int method);
+Mat2d extractCenterline(const Mat2d & bin, int method);
 
-Mat2d saturate(Mat2d & gray);
+Mat2d saturate(const Mat2d & gray);
 
-Mat2d markOutlier(Mat2d & gray, double threshold);
+/**
+ * @attention This method also handles negative-valued pixels.
+ */
+Mat2d markOutlier(const Mat2d & gray, double threshold);
 
 /**
  * @attention param must be binary image.
  */
-Mat2d reverse(Mat2d & bin);
+Mat2d reverse(const Mat2d & bin);
 
-Mat2d erode(Mat2d & bin, int kh, int kw);
+Mat2d erode(const Mat2d & bin, int kh, int kw);
 
-Mat2d dilate(Mat2d & bin, int kh, int kw);
+Mat2d dilate(const Mat2d & bin, int kh, int kw);
 
 /**
  * @breif getcontours using algorithm made by Suzuki and Abe
@@ -73,11 +76,11 @@ Mat2d dilate(Mat2d & bin, int kh, int kw);
  * @param bin binary image.
  * @todo refactor
  */
-std::pair<Paths, std::vector<int>> getContours(Mat2d & bin, int method);
+std::pair<Paths, std::vector<int>> getContours(const Mat2d & bin, int method);
 
-Mat2d getMask(Mat2d & gray);
+Mat2d getMask(const Mat2d & gray);
 
-Mat2d addPadding(Mat2d & a, int h, int j, int k, int l, int method);
+Mat2d addPadding(const Mat2d & a, int h, int j, int k, int l, int method);
 
 /**
  * @brief size up tensor by fill zeros
@@ -86,18 +89,18 @@ Mat2d addPadding(Mat2d & a, int h, int j, int k, int l, int method);
  * @param w target width
  * @return scaled tensor
  */
-Mat2d inflate(Mat2d & a, int h, int w);
+Mat2d inflate(const Mat2d & a, int h, int w);
 
-Image mat2dToImage(Mat2d & a);
+Image mat2dToImage(const Mat2d & a);
 
-Mat2d logpolar(Dots & a, Dot & p);
+Mat2d logpolar(const Dots & a, const Dot & p);
 
-Mat2d logpolarAll(Dots & a);
+Mat2d logpolarAll(const Dots & a);
 
 /**
  * @attention the border of mask must zero. If not, if will raise segfault.
  */
-Mat2d grassfire(Mat2d & a, Mat2d & mask);
+Mat2d grassfire(const Mat2d & a, const Mat2d & mask);
 
 Mat2d cycle(const Mat2d & a, int stride);
 
@@ -108,4 +111,13 @@ Mat2d cycle(const Mat2d & a, int stride);
 Mat2d drawSegment(const Mat2d & a, const Segment & s, int val);
 
 void drawSegmentDirect(Mat2d & a, const Segment & s, int val);
+
+Mat2d drawSegments(const Mat2d & a, const Segments & ss, int val);
+
+/**
+ * @return return binary image. (0 or 1)
+ */
+Mat2d approxUsingSegments(const Mat2d & a);
+
+Mat2d resizeImage(const Mat2d & bin, int method, int targetH, int targetW);
 }

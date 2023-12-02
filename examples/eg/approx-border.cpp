@@ -48,20 +48,9 @@ int main(int argc, char * argv[]) {
     t = dilate(t, 3, 1);
     t = erode(t, 3, 1);
     std::cout << "get contour.." << std::endl;
-    Mat2d out(png.info.height, png.info.width);
-    out.setConstant(0);
-    auto ttmp = getContours(t, eg::contourMethod::suzuki);
-    for(int i = 0; i < ttmp.first.size(); i++) {
-        if(!ttmp.first[i].size()) continue;
-        std::cout << "started decomposing" << std::endl;
-        Segments tmp = eg::trace::decomposePathToSegments(ttmp.first[i], eg::pathDecomMethod::greedy);
-        std::cout << "decomposing finished." << std::endl;
-        std::cout << "start drawing " << tmp.size() << " segments" << std::endl;
-        for(int j = 0; j < tmp.size(); j++) {
-            drawSegmentDirect(out, tmp[j], 255);
-        }
-        std::cout << "end drawing" << std::endl;
-    }
+    // Mat2d out = 255*resizeImage(t, eg::interpolationMethod::vector, 480, 480);
+    //png.info.width = png.info.height = 480;
+    Mat2d out = 255*approxUsingSegments(t);
     i = mat2dToImage(out);
     png.setImage(i);
     png.saveImage("approx-" + inputPath);

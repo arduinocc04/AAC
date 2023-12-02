@@ -28,13 +28,10 @@ namespace eg::math {
 /**
  * @todo Study other's implementation. I don't know how to behave at corners.
  */
-Eigen::Tensor<double, 2> conv(
-                    Eigen::Tensor<double, 2> & input,
-                    Eigen::Tensor<double, 2> & kernel
-                    );
+Eigen::Tensor<double, 2> conv(const Mat2d & input, const Mat2d & kernel);
 
-double compareMat2d(Mat2d & a, Mat2d & b, int method);
+double compareMat2d(const Mat2d & a, const Mat2d & b, int method);
 
-double compareHistogram(Mat2d & ha, Mat2d & hb, int method);
+double compareHistogram(const Mat2d & ha, const Mat2d & hb, int method);
 }
 

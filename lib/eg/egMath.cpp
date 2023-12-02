@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include "egMath.hpp"
+#include "egTool.hpp"
 
 using namespace eg;
 using namespace Eigen;
@@ -13,7 +14,7 @@ using namespace Eigen;
 /**
  * @todo padding 붙여서 구현하는게 더 깔끔할듯
  */
-Mat2d eg::math::conv(Mat2d & input, Mat2d & kernel) {
+Mat2d eg::math::conv(const Mat2d & input, const Mat2d & kernel) {
     int kh = kernel.dimensions()[0];
     int kw = kernel.dimensions()[1];
     int h = input.dimensions()[0];
@@ -41,12 +42,12 @@ Mat2d eg::math::conv(Mat2d & input, Mat2d & kernel) {
 }
 
 // I wanted to name this function as rmse, but stupid compiler thought it's ambiguous.
-double calcrmse(Mat2d & a, Mat2d & b) {
+double calcrmse(const Mat2d & a, const Mat2d & b) {
     Tensor<double, 0> tmp = (a-b).square().sum();
     return std::sqrt(tmp(0));
 }
 
-double bhattacharyyaDist(Mat2d & ha, Mat2d & hb) {
+double bhattacharyyaDist(const Mat2d & ha, const Mat2d & hb) {
     int h = ha.dimensions()[0];
     int w = ha.dimensions()[1];
     Eigen::Tensor<double, 0> sa = ha.sum();
@@ -61,7 +62,7 @@ double bhattacharyyaDist(Mat2d & ha, Mat2d & hb) {
     return std::sqrt(std::abs(1 - 1/n*s));
 }
 
-double eg::math::compareHistogram(Mat2d & ha, Mat2d & hb, int method) {
+double eg::math::compareHistogram(const Mat2d & ha, const Mat2d & hb, int method) {
     if(ha.dimensions() != hb.dimensions())
         throw eg::exceptions::InvalidParameter();
 
@@ -73,15 +74,7 @@ double eg::math::compareHistogram(Mat2d & ha, Mat2d & hb, int method) {
     }
 }
 
-Dots merge(Paths & a) {
-    Dots p;
-    for(int i = 0; i < a.size(); i++)
-        for(int j = 0; j < a[i].size(); j++)
-            p.push_back(a[i][j]);
-    return p;
-}
-
-double eg::math::compareMat2d(Mat2d & a, Mat2d & b, int method) {
+double eg::math::compareMat2d(const Mat2d & a, const Mat2d & b, int method) {
     if(a.dimensions() != b.dimensions())
         throw eg::exceptions::InvalidParameter();
     switch(method) {
@@ -90,8 +83,8 @@ double eg::math::compareMat2d(Mat2d & a, Mat2d & b, int method) {
         case eg::matCmpMethod::shape: {
             std::pair<Paths, std::vector<int>> tmpA = eg::imgproc::getContours(a, eg::contourMethod::suzuki);
             std::pair<Paths, std::vector<int>> tmpB = eg::imgproc::getContours(b, eg::contourMethod::suzuki);
-            Dots dotsConsistA = merge(tmpA.first);
-            Dots dotsConsistB = merge(tmpB.first);
+            Dots dotsConsistA = eg::tool::merge(tmpA.first);
+            Dots dotsConsistB = eg::tool::merge(tmpB.first);
             Mat2d histogramA = eg::imgproc::logpolarAll(dotsConsistA);
             Mat2d histogramB = eg::imgproc::logpolarAll(dotsConsistB);
             return compareHistogram(histogramA, histogramB, eg::histCmpMethod::bhattacharyya);
@@ -99,23 +92,23 @@ double eg::math::compareMat2d(Mat2d & a, Mat2d & b, int method) {
         case eg::matCmpMethod::logpolar: {
             std::pair<Paths, std::vector<int>> tmpA = eg::imgproc::getContours(a, eg::contourMethod::suzuki);
             std::pair<Paths, std::vector<int>> tmpB = eg::imgproc::getContours(b, eg::contourMethod::suzuki);
-            Dots dotsConsistA = merge(tmpA.first);
-            Dots dotsConsistB = merge(tmpB.first);
+            Dots dotsConsistA = eg::tool::merge(tmpA.first);
+            Dots dotsConsistB = eg::tool::merge(tmpB.first);
 
             double minVal = 10; // because result of bhattacharyya <= 1, 10 is big enough.
             int h = a.dimensions()[0];
             int w = a.dimensions()[1];
             Dots candidates;
-            candidates.push_back(std::make_pair(0, 0));
-            candidates.push_back(std::make_pair(0, w));
-            candidates.push_back(std::make_pair(h, 0));
-            candidates.push_back(std::make_pair(h, w));
-            for(int i = 0; i < candidates.size(); i++) {
-                Mat2d histogramA = eg::imgproc::logpolar(dotsConsistA, candidates[i]);
-                Mat2d histogramB = eg::imgproc::logpolar(dotsConsistB, candidates[i]);
-                minVal = std::min(minVal, compareHistogram(histogramA, histogramB, eg::histCmpMethod::bhattacharyya));
+            for(int i = 0; i < h; i++)
+                for(int j = 0; j < w; j++)
+                    candidates.push_back(std::make_pair(i, j));
+            Mat2d histogramA = eg::imgproc::logpolar(dotsConsistA, candidates[0]); // Because the size of histogram may vary, I don't want to use constant in code.
+            Mat2d histogramB = eg::imgproc::logpolar(dotsConsistB, candidates[0]);
+            for(int i = 1; i < candidates.size(); i++) {
+                histogramA += eg::imgproc::logpolar(dotsConsistA, candidates[i]);
+                histogramB += eg::imgproc::logpolar(dotsConsistB, candidates[i]);
             }
-            return minVal;
+            return compareHistogram(histogramA, histogramB, eg::histCmpMethod::bhattacharyya);
         }
         default:
             throw eg::exceptions::InvalidParameter();

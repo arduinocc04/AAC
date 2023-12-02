@@ -23,13 +23,13 @@ double dot(const Vec2 & a, const Vec2 & b);
  */
 double cross(const Vec2 & a, const Vec2 & b);
 
-double euclideDist(Dot & a, Dot & b);
+double euclideDist(const Dot & a, const Dot & b);
 
-double logEuclideDist(Dot & a, Dot & b);
+double logEuclideDist(const Dot & a, const Dot & b);
 
-Dots getConvexHull(Dots & a);
+Dots getConvexHull(const Dots & a);
 
 bool isPointInsideHull(const Dot & p, const std::vector<Dot> & hull, bool includeBorder);
 
-double distSegDot(Segment & a, Dot & p);
+double distSegDot(const Segment & a, const Dot & p);
 }

@@ -6,7 +6,6 @@
  */
 #include <vector>
 #include <queue>
-#include <iostream>
 
 #include "egGeometry.hpp"
 #include "egMath.hpp"
@@ -16,7 +15,7 @@
 #define x first
 #define y second
 
-Segments decomposePathGreedy(Path & a) {
+Segments decomposePathGreedy(const Path & a) {
     Segments ans;
     int startIdx = 0;
     for(int i = 1; i < a.size(); i++) {
@@ -40,17 +39,12 @@ Segments decomposePathGreedy(Path & a) {
     return ans;
 }
 
-Segments decomposePathPotrace(Path & a) {
-}
-
-Segments eg::trace::decomposePathToSegments(Path & a, int method) {
+Segments eg::trace::decomposePathToSegments(const Path & a, int method) {
     if(!a.size())
         throw eg::exceptions::InvalidParameter();
     switch(method) {
         case eg::pathDecomMethod::greedy:
             return decomposePathGreedy(a);
-        case eg::pathDecomMethod::potrace:
-            return decomposePathPotrace(a);
         default:
             throw eg::exceptions::InvalidParameter();
     }
