@@ -7,6 +7,7 @@
 #include <cmath>
 #include <queue>
 #include <algorithm>
+#include <iostream>
 
 #include "egProcessing.hpp"
 #include "egGeometry.hpp"
@@ -294,10 +295,10 @@ std::pair<Paths, std::vector<int>> getContourSuzuki(const Mat2d & bin) {
             if(ans(i, j) != 1) lnbd = abs(ans(i, j));
         } // for j
     } // for i
-    bool * calced = new bool[nbd];
-    bool ** used = new bool * [h];
+    std::vector<bool> calced(nbd);
+    std::vector<std::vector<bool>> used(h);
     for(int i = 0; i < h; i++)
-        used[i] = new bool[w];
+        used[i].resize(w);
     calced[0] = calced[1] = true;
     for(int i = 0; i < h; i++) {
         for(int j = 0; j < w; j++) {
@@ -377,9 +378,6 @@ std::pair<Paths, std::vector<int>> getContourSuzuki(const Mat2d & bin) {
             }
         }
     }
-    delete[] calced;
-    for(int i = 0; i < h; i++) delete[] used[i];
-    delete[] used;
     return std::make_pair(borders, p);
 }
 
@@ -439,14 +437,57 @@ Mat2d eg::imgproc::reverse(const Mat2d & bin) {
     return ans;
 }
 
-Mat2d eg::imgproc::logpolar(const Dots & dots, const Dot & p) {
-    const int tbinCnt = 20;
-    const int rbinCnt = 20;
+Mat2d eg::imgproc::logpolarForMat2d(const Mat2d & a, const Dot & p) {
+    const int h = a.dimensions()[0];
+    const int w = a.dimensions()[1];
+    const int tbinCnt = 12;
+    const int rbinCnt = 5;
     const double tbinSize = 2*M_PI/tbinCnt;
-    const double rbinSize = 0.2;
+    const double rbinSize = std::log((double)(16/2)/rbinCnt);
 
-    Mat2d histogram(tbinCnt, rbinCnt);
-    histogram.setConstant(0);
+    Mat2d histo(tbinCnt, rbinCnt);
+    histo.setConstant(0);
+
+    for(int i = 0; i < h; i++) {
+        for(int j = 0; j < w; j++) {
+            const double rho = eg::geo::logEuclideDist(std::make_pair(i, j), p);
+            if(i == p.first) continue;
+            const double theta = std::atan2(j - p.second, i - p.first) + M_PI;
+            int ri, ti;
+            if(rho > rbinSize*rbinCnt)
+                ri = rbinCnt - 1;
+            else {
+                for(int k = 1; k <= rbinCnt; k++) {
+                    if(rho <= k*rbinSize) {
+                        ri = k - 1;
+                        break;
+                    }
+                }
+            }
+            if(theta > tbinSize*tbinCnt)
+                ti = tbinCnt - 1;
+            else {
+                for(int k = 1; k <= tbinCnt; k++) {
+                    if(theta <= k*tbinSize) {
+                        ti = k - 1;
+                        break;
+                    }
+                }
+            }
+            histo(ti, ri) += a(i, j);
+        }
+    }
+    return histo;
+}
+
+Mat2d eg::imgproc::logpolar(const Dots & dots, const Dot & p) {
+    const int tbinCnt = 12; // value in the paper structure-based ascii art
+    const int rbinCnt = 5; // value in the paper structure-based ascii art
+    const double tbinSize = 2*M_PI/tbinCnt;
+    const double rbinSize = std::log((double)(16/2)/rbinCnt); // value in the paper structure-based ascii art
+
+    Mat2d histo(tbinCnt, rbinCnt);
+    histo.setConstant(0);
     for(int i = 0; i < dots.size(); i++) {
         double rho = eg::geo::logEuclideDist(dots[i], p);
         if(dots[i].first == p.first) continue;
@@ -455,34 +496,34 @@ Mat2d eg::imgproc::logpolar(const Dots & dots, const Dot & p) {
         if(rho > rbinSize*rbinCnt)
             ri = rbinCnt - 1;
         else {
-            for(int i = 1; i <= rbinCnt; i++) {
-                if(rho <= i*rbinSize) {
-                    ri = i - 1;
+            for(int j = 1; j <= rbinCnt; j++) {
+                if(rho <= j*rbinSize) {
+                    ri = j - 1;
                     break;
                 }
             }
         }
+
         if(theta > tbinSize*tbinCnt)
             ti = tbinCnt - 1;
         else {
-            for(int i = 1; i <= tbinCnt; i++) {
-                if(theta <= i*tbinSize) {
-                    ti = i - 1;
+            for(int j = 1; j <= tbinCnt; j++) {
+                if(theta <= j*tbinSize) {
+                    ti = j - 1;
                     break;
                 }
             }
         }
-        histogram(ri, ti)++;
+        ++histo(ti, ri);
     }
-    return histogram;
+    return histo;
 }
 
 Mat2d eg::imgproc::logpolarAll(const Dots & dots) {
-    const int tbinCnt = 20;
-    const int rbinCnt = 20;
-    Mat2d histogram(tbinCnt, rbinCnt);
-    histogram.setConstant(0);
-    for(int i = 0; i < dots.size(); i++) {
+    if(dots.size() == 0)
+        throw eg::exceptions::InvalidParameter();
+    Mat2d histogram = logpolar(dots, dots[0]);
+    for(int i = 1; i < dots.size(); i++) {
         histogram += logpolar(dots, dots[i]);
     }
     return histogram;
@@ -561,6 +602,20 @@ Mat2d eg::imgproc::drawSegment(const Mat2d & a, const Segment & s, int val) {
     return ans;
 }
 
+Mat2d eg::imgproc::drawSegments(const Mat2d & a, const Segments & ss, int val) {
+    int h = a.dimensions()[0];
+    int w = a.dimensions()[1];
+    Mat2d ans(h, w);
+    for(int i = 0; i < h; i++)
+        for(int j = 0; j < w; j++)
+            ans(i, j) = a(i, j);
+
+    for(int i = 0; i < ss.size(); i++) {
+        drawSegmentDirect(ans, ss[i], val);
+    }
+    return ans;
+}
+
 Mat2d eg::imgproc::erode(const Mat2d & bin, int kh, int kw) {
     int h = bin.dimensions()[0];
     int w = bin.dimensions()[1];
@@ -614,20 +669,6 @@ Mat2d eg::imgproc::dilate(const Mat2d & bin, int kh, int kw) {
             if(flag) ans(i, j) = 1;
             else ans(i, j) = 0;
         }
-    }
-    return ans;
-}
-
-Mat2d eg::imgproc::drawSegments(const Mat2d & a, const Segments & ss, int val) {
-    int h = a.dimensions()[0];
-    int w = a.dimensions()[1];
-    Mat2d ans(h, w);
-    for(int i = 0; i < h; i++)
-        for(int j = 0; j < w; j++)
-            ans(i, j) = a(i, j);
-
-    for(int i = 0; i < ss.size(); i++) {
-        drawSegmentDirect(ans, ss[i], val);
     }
     return ans;
 }

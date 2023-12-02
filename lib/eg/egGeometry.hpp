@@ -23,6 +23,8 @@ double dot(const Vec2 & a, const Vec2 & b);
  */
 double cross(const Vec2 & a, const Vec2 & b);
 
+double norm(const Vec2 & a);
+
 double euclideDist(const Dot & a, const Dot & b);
 
 double logEuclideDist(const Dot & a, const Dot & b);

@@ -14,6 +14,10 @@ int eg::geo::ccw(const Dot & a, const Dot & b, const Dot & c) {
     return 0;
 }
 
+double eg::geo::norm(const Vec2 & a) {
+    return std::sqrt(dot(a, a));
+}
+
 double eg::geo::dot(const Vec2 & a, const Vec2 & b) {
     return a.first*b.first + a.second*b.second;
 }

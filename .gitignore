@@ -1,4 +1,5 @@
 build/*
+debug/*
 .vscode/*
 doc/*
 !doc/doxy.conf

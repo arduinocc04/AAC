@@ -3,8 +3,11 @@
  * @author Daniel Cho
  * @version 0.0.1
  */
+#define _USE_MATH_DEFINES
 #include <cmath>
+#include <algorithm>
 
+#include "egGeometry.hpp"
 #include "egMath.hpp"
 #include "egTool.hpp"
 
@@ -52,6 +55,7 @@ double bhattacharyyaDist(const Mat2d & ha, const Mat2d & hb) {
     int w = ha.dimensions()[1];
     Eigen::Tensor<double, 0> sa = ha.sum();
     Eigen::Tensor<double, 0> sb = hb.sum();
+    if(sa(0) == 0 || sb(0) == 0) return calcrmse(ha, hb); // todo change..
     double n = std::sqrt(sa(0))*std::sqrt(sb(0));
     double s = 0;
     for(int i = 0; i < h; i++) {
@@ -62,6 +66,17 @@ double bhattacharyyaDist(const Mat2d & ha, const Mat2d & hb) {
     return std::sqrt(std::abs(1 - 1/n*s));
 }
 
+double calcAE(const Mat2d & ha, const Mat2d & hb) { // absolute error
+    int h = ha.dimensions()[0];
+    int w = ha.dimensions()[1];
+    Mat2d t = ha - hb;
+    int res = 0;
+    for(int i = 0; i < h; i++)
+        for(int j = 0; j < w; j++)
+            res += abs(t(i, j));
+    return res;
+}
+
 double eg::math::compareHistogram(const Mat2d & ha, const Mat2d & hb, int method) {
     if(ha.dimensions() != hb.dimensions())
         throw eg::exceptions::InvalidParameter();
@@ -69,6 +84,8 @@ double eg::math::compareHistogram(const Mat2d & ha, const Mat2d & hb, int method
     switch(method) {
         case eg::histCmpMethod::bhattacharyya:
             return bhattacharyyaDist(ha, hb);
+        case eg::histCmpMethod::absolute:
+            return calcAE(ha, hb);
         default:
             throw eg::exceptions::InvalidParameter();
     }
@@ -90,27 +107,144 @@ double eg::math::compareMat2d(const Mat2d & a, const Mat2d & b, int method) {
             return compareHistogram(histogramA, histogramB, eg::histCmpMethod::bhattacharyya);
         }
         case eg::matCmpMethod::logpolar: {
-            std::pair<Paths, std::vector<int>> tmpA = eg::imgproc::getContours(a, eg::contourMethod::suzuki);
-            std::pair<Paths, std::vector<int>> tmpB = eg::imgproc::getContours(b, eg::contourMethod::suzuki);
-            Dots dotsConsistA = eg::tool::merge(tmpA.first);
-            Dots dotsConsistB = eg::tool::merge(tmpB.first);
-
-            double minVal = 10; // because result of bhattacharyya <= 1, 10 is big enough.
             int h = a.dimensions()[0];
             int w = a.dimensions()[1];
             Dots candidates;
-            for(int i = 0; i < h; i++)
-                for(int j = 0; j < w; j++)
+            for(int i = 0; i < h; i += 2) // i += 2 is suggested in the paper structure-based ascii art
+                for(int j = 0; j < w; j += 2) // j += 2 is suggested in the paper structure-based ascii art
                     candidates.push_back(std::make_pair(i, j));
-            Mat2d histogramA = eg::imgproc::logpolar(dotsConsistA, candidates[0]); // Because the size of histogram may vary, I don't want to use constant in code.
-            Mat2d histogramB = eg::imgproc::logpolar(dotsConsistB, candidates[0]);
-            for(int i = 1; i < candidates.size(); i++) {
-                histogramA += eg::imgproc::logpolar(dotsConsistA, candidates[i]);
-                histogramB += eg::imgproc::logpolar(dotsConsistB, candidates[i]);
+
+            double res = 0;
+            Eigen::Tensor<double, 0> n = a.sum();
+            Eigen::Tensor<double, 0> np = b.sum();
+            double M = n(0) + np(0);
+
+            for(int i = 0; i < candidates.size(); i++) {
+                Mat2d histogramA = eg::imgproc::logpolarForMat2d(a, candidates[i]);
+                Mat2d histogramB = eg::imgproc::logpolarForMat2d(b, candidates[i]);
+                res += calcrmse(histogramA, histogramB);
             }
-            return compareHistogram(histogramA, histogramB, eg::histCmpMethod::bhattacharyya);
+
+            return res/M;
         }
         default:
             throw eg::exceptions::InvalidParameter();
     }
+}
+
+double calcDeformAngle(const Segment & a, const Segment & b) {
+    const double lambda = 8/M_PI;
+    const double aLength = eg::geo::euclideDist(a.first, a.second);
+    const double bLength = eg::geo::euclideDist(b.first, b.second);
+    const double theta = std::acos(eg::geo::dot(a.first - a.second, b.first - b.second)/(aLength*bLength));
+    return std::exp(lambda*theta);
+}
+
+double calcDeformLength(const Segment & a, const Segment & b) {
+    const double lambda = (double)2/15;
+    const double delta = 0.5;
+
+    const double r = eg::geo::euclideDist(a.first, a.second);
+    const double rr = eg::geo::euclideDist(b.first, b.second);
+    const double lengthDelta = abs(r - rr);
+    const double shortL = std::min(r, rr);
+    const double longL = std::max(r, rr);
+    return std::max(std::exp(lambda*lengthDelta),
+                    std::exp(delta*longL/shortL));
+}
+
+double eg::math::calcDeformLocal(const Segment & before, const Segment & after) {
+    return std::max(calcDeformAngle(before, after), calcDeformLength(before, after));
+}
+
+/**
+ * @attention this implementation isn't same in the paper.
+ */
+double eg::math::calcAccess(const Segment & before, const Segment & after, const Segments & ss) {
+    Vec2 u = before.second - before.first;
+    Dot mid = before.first + u/2;
+    std::vector<std::pair<double, int>> calced;
+    for(int i = 0; i < ss.size(); i++) {
+        if(ss[i] == before) continue;
+        calced.push_back(std::make_pair(eg::geo::distSegDot(ss[i], mid), i));
+    }
+    std::sort(calced.begin(), calced.end());
+    std::vector<std::pair<double, double>> used;
+    std::vector<int> candidates;
+    for(int j = 0; j < calced.size(); j++) {
+        int i = calced[j].second;
+        double startAngle, endAngle;
+        if(ss[i].first.first == mid.first)
+            startAngle = 0;
+        else
+            startAngle = std::atan2(ss[i].first.second - mid.second, ss[i].first.first - mid.first) + M_PI;
+        if(ss[i].second.first == mid.first)
+            endAngle = 0;
+        else
+            endAngle = std::atan2(ss[i].second.second - mid.second, ss[i].second.first - mid.first) + M_PI;
+        if(startAngle > endAngle) {
+            double tmp = startAngle;
+            startAngle = endAngle;
+            endAngle = startAngle;
+        }
+
+        bool insert = true;
+        for(int k = 0; k < used.size(); k++) {
+            if(used[k].first <= startAngle && endAngle <= used[k].second) {
+                insert = false;
+                break;
+            }
+        }
+
+        if(insert) {
+            candidates.push_back(i);
+            double l = startAngle;
+            double r = endAngle;
+            std::vector<int> toRemove;
+            for(int k = 0; k < used.size(); k++) { // merge overlapped intervals
+                double tl = used[k].first, tr = used[k].second;
+                if((tl <= l && l <= tr) || (tl <= r && r <= tr) || (l <= tl && tl <= r) || (l <= tr && tr <= r)) {
+                        toRemove.push_back(k);
+                        l = std::min(tl, l);
+                        r = std::max(tr, r);
+                }
+            }
+            used.push_back(std::make_pair(l, r));
+            for(int k = 0; k < toRemove.size(); k++) {
+                used.erase(used.begin() + toRemove[k] - k);
+            }
+        }
+    }
+
+    u = after.second - after.first;
+    Dot midAfter = after.first + u/2;
+
+    double lengthSum = 0;
+    for(int i = 0; i < candidates.size(); i++) {
+        lengthSum += eg::geo::distSegDot(ss[i], mid);
+    }
+
+    double res = 0;
+    for(int i = 0; i < candidates.size(); i++) {
+        double w = eg::geo::distSegDot(ss[i], mid)/lengthSum;
+        Dot mostCloseToMid;
+        if(eg::geo::dot(ss[i].second - ss[i].first, mid - ss[i].first) < 0) {
+            mostCloseToMid = ss[i].first;
+        }
+        else if(eg::geo::dot(ss[i].first - ss[i].second, mid - ss[i].second) < 0) {
+            mostCloseToMid = ss[i].second;
+        }
+        else {
+            u = ss[i].second - ss[i].first;
+            Vec2 v = mid - ss[i].first;
+            mostCloseToMid = ss[i].first + eg::geo::dot(u, v)/eg::geo::norm(u)*u;
+        }
+        res += w*calcDeformLocal(std::make_pair(mid, mostCloseToMid), std::make_pair(midAfter, mostCloseToMid));
+    }
+
+    return res;
+}
+
+double eg::math::calcDeform(const Segment & before, const Segment & after, const Segments & ss) {
+    return std::max(calcDeformLocal(before, after), calcAccess(before, after, ss));
 }

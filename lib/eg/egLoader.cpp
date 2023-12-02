@@ -57,11 +57,7 @@ void eg::PNG::setImage(const eg::Image & a) {
     int w = info.width;
     if(h != a.dimensions()[0] || w != a.dimensions()[1])
         throw eg::exceptions::InvalidParameter();
-
-    for(int i = 0; i < h; i++)
-        for(int j = 0; j < w; j++)
-            for(int k = 0; k < 4; k++)
-                image(i, j, k) = a(i, j, k);
+    image = a;
 }
 
 void eg::PNG::allocBuffer() {
