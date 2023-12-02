@@ -1,40 +1,48 @@
 \documentclass{beamer}
 \usepackage[hangul]{kotex}
-\usepackage[pdftex]{graphicx}
-\usetheme{Antibes}
-\author{No More Double \\ 박준영, 조다니엘}
-\input{}
-\date{\today}
+\usepackage{graphicx}
+\usetheme{Copenhagen}
+\usecolortheme{beaver}
+
+\definecolor{titlebg}{RGB}{236, 220, 220}
+\definecolor{titlefg}{RGB}{190, 20, 20}
+\definecolor{frametitlebg}{RGB}{236, 220, 220}
+\definecolor{frametitlefg}{RGB}{190, 20, 20}
+
+\setbeamercolor{title}{bg=titlebg, fg=titlefg}
+\setbeamercolor{frametitle}{bg=frametitlebg, fg=frametitlefg}
+\beamertemplateheadempty
+\beamertemplatefootempty
+\beamertemplatenavigationsymbolsempty
+
 \title{AAC}
-\institute{Sogang CSE2035}
 \subtitle{Ascii Art Converter}
-
-\AtBeginSection[]
-{
-   \begin{frame}<beamer>
-   \frametitle{Plan}
-   \tableofcontents[currentsection]
-   \end{frame}
-}
-
-\AtBeginSubsection[]
-{
-   \begin{frame}<beamer>
-   \frametitle{Plan}
-   \tableofcontents[currentsubsection]
-   \end{frame}
-}
+\author{No More Double \\ 조다니엘, 박준영}
+\institute{Sogang University \\ CSE2035/AIE2051}
+\date{\today}
 
 \begin{document}
-	\begin{frame}
+
+\section{}
+	\begin{frame}{}
 		\titlepage
+		\begin{figure}
+			\vspace{-1em}
+			\includegraphics[width=2cm]{sogang_university_logo}
+			\vspace{1em}
+		\end{figure}
 	\end{frame}
+\section{}
+
+\section{}
 	\begin{frame}{목차}
 		\tableofcontents
 	\end{frame}
+\section{}
 
 \section{왜 만들었는가?}
-	\begin{frame}{멋있어서}
+	\begin{frame}
+		\frametitle{멋있어서}
 	\end{frame}
 \section{어떻게 만들었는가?}
 \subsection{사용한 것들}
