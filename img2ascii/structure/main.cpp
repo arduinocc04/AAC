@@ -11,7 +11,7 @@
 #include "egProcessing.hpp"
 #include "egMath.hpp"
 
-#define DIST_METHOD 2 // 0: RMSE
+#define DIST_METHOD 2 // 0: RMSE 1: shape 2: logpolar
 #define PRINT_INPUT_IMAGE 0
 
 #define INF 987654321
@@ -48,6 +48,8 @@ Mat2d * getAllImages(std::string path, int fCnt) {
         Image t = png.copy();
         ans[i] = cvtGray(t, eg::grayCvtMethod::mean);
         ans[i] = markOutlier(ans[i], 70); // 70 is founded by experiment.
+        ans[i] = eg::imgproc::grassfire(ans[i], ans[i]);
+        ans[i] = binary(ans[i], 1);
         i += 1;
     }
     std::cout << std::endl;
@@ -113,19 +115,22 @@ int main(int argc, char * argv[]) {
     if(argc == 5) {
         targetH = std::stoi(argv[3]);
         targetW = std::stoi(argv[4]);
-            }
+    }
     else { // argc == 4
         double ratio = std::stod(argv[3]);
-        targetH = inputImage.info.height*ratio;
-        targetW = inputImage.info.width*ratio;
+        targetH = round(inputImage.info.height*ratio);
+        targetW = round(inputImage.info.width*ratio);
     }
     inputImage.info.height = targetH;
     inputImage.info.width = targetW;
+    std::cout << "target H: " << targetH << " target W: " << targetW << std::endl;
     t = resizeImage(t, eg::resizeMethod::vector, targetH, targetW);
     Mat2d ttmp = 255*t;
     i = mat2dToImage(ttmp);
     inputImage.setImage(i);
     inputImage.saveImage("asdf.png");
+    i = mat2dToImage(t);
+    inputImage.setImage(i);
     inputImage.divideImageByLength(asciih, asciiw);
 
     int gcCnt = inputImage.getGridColCnt();
@@ -139,7 +144,6 @@ int main(int argc, char * argv[]) {
         for(int j = 0; j < gcCnt; j++) {
             Image raw = inputImage.getImageAtGrid(i, j);
             Mat2d sample = cvtGray(raw, eg::grayCvtMethod::mean);
-            sample = eg::imgproc::grassfire(sample, sample);
             //sample = getEdge(sample, eg::edgeDetectMethod::gradient);
             //sample = getContours(sample, -1);
             //sample = markOutlier(sample, 1);
