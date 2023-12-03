@@ -95,6 +95,8 @@ Image mat2dToImage(const Mat2d & a);
 
 Mat2d logpolar(const Dots & a, const Dot & p);
 
+Mat2d logpolarForMat2d(const Mat2d & a, const Dot & p);
+
 Mat2d logpolarAll(const Dots & a);
 
 /**

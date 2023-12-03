@@ -32,5 +32,11 @@ Dot operator+(const Dot & a);
 
 Dot operator-(const Dot & a);
 
+Dot operator/(const Dot & a, const double & b);
+
+Dot operator*(const Dot & a, const double & b);
+
+Dot operator*(const double & b, const Dot & a);
+
 }
 

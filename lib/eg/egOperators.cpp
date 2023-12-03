@@ -19,7 +19,26 @@ Dot operator-(const Dot & a, const Dot & b) {
 Dot operator+(const Dot & a, const Dot & b) {
     Dot res;
     res.first = a.first + b.first;
-    res.second = a.second + b.second; return res;
+    res.second = a.second + b.second;
+    return res;
+}
+
+Dot operator/(const Dot & a, const double & b) {
+    Dot res;
+    res.first = a.first/b;
+    res.second = a.second/b;
+    return res;
+}
+
+Dot operator*(const Dot & a, const double & b) {
+    Dot res;
+    res.first = a.first*b;
+    res.second = a.second*b;
+    return res;
+}
+
+Dot operator*(const double & b, const Dot & a) {
+    return operator*(a, b);
 }
 
 Dot operator+(const Dot & a) {

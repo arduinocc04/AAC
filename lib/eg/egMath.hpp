@@ -33,5 +33,11 @@ Eigen::Tensor<double, 2> conv(const Mat2d & input, const Mat2d & kernel);
 double compareMat2d(const Mat2d & a, const Mat2d & b, int method);
 
 double compareHistogram(const Mat2d & ha, const Mat2d & hb, int method);
+
+double calcDeformLocal(const Segment & before, const Segment & after);
+
+double calcAccess(const Segment & before, const Segment & after, const Segments & ss);
+
+double calcDeform(const Segment & before, const Segment & after, const Segments & ss);
 }
 

@@ -18,6 +18,7 @@
 Segments decomposePathGreedy(const Path & a) {
     Segments ans;
     int startIdx = 0;
+    const double THRESHOLD = 5;
     for(int i = 1; i < a.size(); i++) {
         Segment tmp;
         tmp.first = a[startIdx];
@@ -31,11 +32,13 @@ Segments decomposePathGreedy(const Path & a) {
         }
         if(!flag) {
             tmp.second = a[i - 1];
+            if(eg::geo::euclideDist(tmp.first, tmp.second) >= THRESHOLD)
             ans.push_back(tmp);
             startIdx = i;
         }
     }
-    ans.push_back(std::make_pair(a[startIdx], a[a.size() - 1]));
+    if(eg::geo::euclideDist(a[startIdx], a[a.size() - 1]) >= THRESHOLD)
+        ans.push_back(std::make_pair(a[startIdx], a[a.size() - 1]));
     return ans;
 }
 

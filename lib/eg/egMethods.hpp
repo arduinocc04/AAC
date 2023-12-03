@@ -43,7 +43,7 @@ enum paddingMethod {
 };
 
 enum histCmpMethod {
-    bhattacharyya
+    bhattacharyya, absolute
 };
 
 enum matCmpMethod {
