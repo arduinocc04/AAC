@@ -10,5 +10,7 @@ namespace eg::trace {
 /**
  * @param a path must given in ccw or cw.
  */
-Segments decomposePathToSegments(const Path & a, int method);
+Segments approxPathToSegments(const Path & a, int method);
+
+Path approxPath(const Path & a);
 }

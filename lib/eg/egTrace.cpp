@@ -15,7 +15,7 @@
 #define x first
 #define y second
 
-Segments decomposePathGreedy(const Path & a) {
+Segments approxPathGreedy(const Path & a) {
     Segments ans;
     int startIdx = 0;
     const double THRESHOLD = 5;
@@ -42,12 +42,37 @@ Segments decomposePathGreedy(const Path & a) {
     return ans;
 }
 
-Segments eg::trace::decomposePathToSegments(const Path & a, int method) {
+Path eg::trace::approxPath(const Path & a) {
+    Path ans;
+    int startIdx = 0;
+    const double THRESHOLD = 5;
+    for(int i = 1; i < a.size(); i++) {
+        bool flag = true;
+        Segment tmp = std::make_pair(a[startIdx], a[i]);
+        for(int j = startIdx + 1; j < i; j++) {
+            if(eg::geo::distSegDot(tmp, a[j]) > 1.42) {
+                flag = false;
+                break;
+            }
+        }
+        if(!flag) {
+            ans.push_back(a[startIdx]);
+            startIdx = i;
+        }
+    }
+    if(eg::geo::euclideDist(a[startIdx], a[a.size() - 1]) >= THRESHOLD) {
+        ans.push_back(a[startIdx]);
+        ans.push_back(a[a.size() - 1]);
+    }
+    return ans;
+}
+
+Segments eg::trace::approxPathToSegments(const Path & a, int method) {
     if(!a.size())
         throw eg::exceptions::InvalidParameter();
     switch(method) {
         case eg::pathDecomMethod::greedy:
-            return decomposePathGreedy(a);
+            return approxPathGreedy(a);
         default:
             throw eg::exceptions::InvalidParameter();
     }

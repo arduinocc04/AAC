@@ -5,11 +5,13 @@
  */
 #define _USE_MATH_DEFINES
 #include <cmath>
-#include <algorithm>
+#include <iostream>
 
 #include "egGeometry.hpp"
 #include "egMath.hpp"
 #include "egTool.hpp"
+
+#define ZERO 1e-6
 
 using namespace eg;
 using namespace Eigen;
@@ -118,6 +120,7 @@ double eg::math::compareMat2d(const Mat2d & a, const Mat2d & b, int method) {
             Eigen::Tensor<double, 0> n = a.sum();
             Eigen::Tensor<double, 0> np = b.sum();
             double M = n(0) + np(0);
+            if(M == 0) return 0;
 
             for(int i = 0; i < candidates.size(); i++) {
                 Mat2d histogramA = eg::imgproc::logpolarForMat2d(a, candidates[i]);
@@ -136,7 +139,10 @@ double calcDeformAngle(const Segment & a, const Segment & b) {
     const double lambda = 8/M_PI;
     const double aLength = eg::geo::euclideDist(a.first, a.second);
     const double bLength = eg::geo::euclideDist(b.first, b.second);
-    const double theta = std::acos(eg::geo::dot(a.first - a.second, b.first - b.second)/(aLength*bLength));
+    const double t = eg::geo::dot(a.first - a.second, b.first - b.second)/(aLength*bLength);
+    if(t != t) return 987;
+    const double theta = std::acos(t);
+    // std::cout << t << std::endl;
     return std::exp(lambda*theta);
 }
 
@@ -148,13 +154,19 @@ double calcDeformLength(const Segment & a, const Segment & b) {
     const double rr = eg::geo::euclideDist(b.first, b.second);
     const double lengthDelta = abs(r - rr);
     const double shortL = std::min(r, rr);
+    // if(shortL < ZERO)  return 987;
     const double longL = std::max(r, rr);
-    return std::max(std::exp(lambda*lengthDelta),
-                    std::exp(delta*longL/shortL));
+    const double t = std::max(std::exp(lambda*lengthDelta),
+                     std::exp(delta*longL/shortL));
+    if(t != t) return 987;
+    return t;
 }
 
 double eg::math::calcDeformLocal(const Segment & before, const Segment & after) {
-    return std::max(calcDeformAngle(before, after), calcDeformLength(before, after));
+    double t = calcDeformAngle(before, after);
+    double tt = calcDeformLength(before, after);
+    // std::cout << "ANGLE " << t << " LEN " << tt << std::endl;
+    return std::max(t, tt);
 }
 
 /**
@@ -223,7 +235,7 @@ double eg::math::calcAccess(const Segment & before, const Segment & after, const
     for(int i = 0; i < candidates.size(); i++) {
         lengthSum += eg::geo::distSegDot(ss[i], mid);
     }
-
+    // if(lengthSum < ZERO) return 987;
     double res = 0;
     for(int i = 0; i < candidates.size(); i++) {
         double w = eg::geo::distSegDot(ss[i], mid)/lengthSum;
@@ -237,14 +249,23 @@ double eg::math::calcAccess(const Segment & before, const Segment & after, const
         else {
             u = ss[i].second - ss[i].first;
             Vec2 v = mid - ss[i].first;
+            // if(eg::geo::norm(u) < ZERO) return 987;
             mostCloseToMid = ss[i].first + eg::geo::dot(u, v)/eg::geo::norm(u)*u;
         }
-        res += w*calcDeformLocal(std::make_pair(mid, mostCloseToMid), std::make_pair(midAfter, mostCloseToMid));
+        double t = w*calcDeformLocal(std::make_pair(mid, mostCloseToMid), std::make_pair(midAfter, mostCloseToMid));
+        res += t;
     }
-
+    if(res != res) return 987;
     return res;
 }
 
 double eg::math::calcDeform(const Segment & before, const Segment & after, const Segments & ss) {
-    return std::max(calcDeformLocal(before, after), calcAccess(before, after, ss));
+    if(eg::geo::euclideDist(after.first, after.second) < 1e-8) return  987;
+    if(eg::geo::euclideDist(before.first, before.second) < 1e-8) return  987;
+    double t = calcDeformLocal(before, after);
+    double tt = calcAccess(before, after, ss);
+    // std::cout << "LO " << t << " ACC " << tt << std::endl;
+    double c = std::max(t, tt);
+    if(c != c) return 987;
+    return c;
 }
