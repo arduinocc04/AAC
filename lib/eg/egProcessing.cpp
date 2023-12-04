@@ -682,7 +682,7 @@ Mat2d eg::imgproc::approxUsingSegments(const Mat2d & a) {
     auto ttmp = getContours(a, eg::contourMethod::suzuki);
     for(int i = 0; i < ttmp.first.size(); i++) {
         if(!ttmp.first[i].size()) continue;
-        Segments tmp = eg::trace::decomposePathToSegments(ttmp.first[i], eg::pathDecomMethod::greedy);
+        Segments tmp = eg::trace::approxPathToSegments(ttmp.first[i], eg::pathDecomMethod::greedy);
         for(int j = 0; j < tmp.size(); j++)
             drawSegmentDirect(ans, tmp[j], 1);
     }
@@ -702,7 +702,7 @@ Mat2d resizeVector(const Mat2d & bin, int targetH, int targetW) {
     auto ttmp = getContours(bin, eg::contourMethod::suzuki);
     for(int i = 0; i < ttmp.first.size(); i++) {
         if(!ttmp.first[i].size()) continue;
-        Segments tmp = eg::trace::decomposePathToSegments(ttmp.first[i], eg::pathDecomMethod::greedy);
+        Segments tmp = eg::trace::approxPathToSegments(ttmp.first[i], eg::pathDecomMethod::greedy);
         for(int j = 0; j < tmp.size(); j++) {
             tmp[j].first.first = round(tmp[j].first.first*hRatio);
             tmp[j].second.first = round(tmp[j].second.first*hRatio);

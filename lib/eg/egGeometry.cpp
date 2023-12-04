@@ -8,7 +8,9 @@
 using namespace eg;
 
 int eg::geo::ccw(const Dot & a, const Dot & b, const Dot & c) {
-    double t = cross(b - a, c - a);
+    Vec2 u = b - a;
+    Vec2 v = c - a;
+    double t = cross(u, v);
     if(t > 0) return 1;
     else if(t < 0) return -1;
     return 0;
@@ -72,7 +74,8 @@ Dots eg::geo::getConvexHull(const Dots & a) {
 }
 
 double eg::geo::euclideDist(const Dot & a, const Dot & b) {
-    return std::sqrt(dot(a - b, a - b));
+    Vec2 t = a - b;
+    return std::sqrt(dot(t, t));
 }
 
 double eg::geo::logEuclideDist(const Dot & a, const Dot & b) {
@@ -80,6 +83,8 @@ double eg::geo::logEuclideDist(const Dot & a, const Dot & b) {
 }
 
 double eg::geo::distSegDot(const Segment & a, const Dot & p) {
+    if(a.first == a.second) return euclideDist(a.first, p);
+
     Vec2 base = a.second - a.first;
     if(dot(base, p - a.first) <= 0 || dot(-base, p - a.second) <= 0) // can't draw vertical line
 
