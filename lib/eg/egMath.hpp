@@ -36,8 +36,8 @@ double compareHistogram(const Mat2d & ha, const Mat2d & hb, int method);
 
 double calcDeformLocal(const Segment & before, const Segment & after);
 
-double calcAccess(const Segment & before, const Segment & after, const Segments & ss);
+double calcAccess(const Segment & before, const Segment & after, const Segments & ss, const Segments & original);
 
-double calcDeform(const Segment & before, const Segment & after, const Segments & ss);
+double calcDeform(const Segment & before, const Segment & after, const Segments & ss, const Segments & original);
 }
 

@@ -7,7 +7,7 @@ count_line () {
     for f in `ls $1`
     do
         if [ -d "$1/$f" ]; then
-            if [[ $f != "build" ]]; then
+            if [[ $f != "build" ]] && [[ $f != "debug" ]]; then
                 count_line "$1/$f"
             fi
         else

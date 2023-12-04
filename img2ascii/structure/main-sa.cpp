@@ -55,6 +55,7 @@ Mat2d * getAllImages(std::string path, int fCnt) {
         ans[i] = markOutlier(ans[i], 70); // 70 is founded by experiment.
         ans[i] = eg::imgproc::grassfire(ans[i], ans[i]);
         ans[i] = binary(ans[i], 1);
+        ans[i] = 255*ans[i]; // This is necessary because it will increase error when misaligned.
         i += 1;
     }
     std::cout << std::endl;
@@ -145,7 +146,7 @@ Segment clip(const Segment & s, const Dot & lu, const Dot & rd) {
                 y = ymax;
             }
             else if(outcodeOut & BOTTOM) {
-                x = round(x0 + (x1 - x0)*(ymax - y0)/(y1 - y0));
+                x = round(x0 + (x1 - x0)*(ymin - y0)/(y1 - y0));
                 y = ymin;
             }
             else if(outcodeOut & RIGHT) {
@@ -230,6 +231,7 @@ int main(int argc, char * argv[]) {
         for(int j = 1; j < tmp.size(); j++)
             segs.push_back(std::make_pair(tmp[j - 1], tmp[j]));
     }
+    Segments originalSegs = segs;
     Paths original = paths;
 
     inputImage.divideImageByLength(asciih, asciiw);
@@ -239,6 +241,9 @@ int main(int argc, char * argv[]) {
     std::cout << grCnt << "x" << gcCnt << std::endl;
 
     char devnull[10];
+
+
+    std::cout << "not DEFORM " << eg::math::calcDeform(segs[0], segs[0], segs, originalSegs) << std::endl;
 
     std::cout << "Decomposing lines into grids.." << std::endl;
     std::vector<std::vector<std::vector<std::pair<Segment, std::pair<int, int>>>>> lines(grCnt);
@@ -276,6 +281,20 @@ int main(int argc, char * argv[]) {
     */
     std::cout << "Decompose finished" << std::endl;
     std::vector<std::vector<std::vector<std::pair<Segment, std::pair<int, int>>>>> originalLines = lines;
+    Mat2d decomTestMat(inputImage.info.height, inputImage.info.width);
+    decomTestMat.setConstant(0);
+    for(int i = 0; i < grCnt; i++) {
+        for(int j = 0; j < gcCnt; j++) {
+            for(int k = 0; k < lines[i][j].size(); k++) {
+                drawSegmentDirect(decomTestMat, lines[i][j][k].first, 255);
+            }
+        }
+    }
+    Image decomImage = mat2dToImage(decomTestMat);
+    PNG decom;
+    decom.openImage(inputImage.getInputPath());
+    decom.setImage(decomImage);
+    decom.saveImage("decomed-approx.png");
 
     std::cout << "Calculating initial E" << std::endl;
 
@@ -288,8 +307,11 @@ int main(int argc, char * argv[]) {
 
     double * distances = new double[fCnt];
     char ** buffer = new char * [grCnt];
-    for(int i = 0; i < grCnt; i++)
+    char ** best = new char * [grCnt];
+    for(int i = 0; i < grCnt; i++) {
         buffer[i] = new char[gcCnt];
+        best[i] = new char[grCnt];
+    }
     double prevE = 0;
     /*std::thread ts[THREAD_CNT];
     for(int i = 0; i < THREAD_CNT; i++)
@@ -308,7 +330,7 @@ int main(int argc, char * argv[]) {
                 tmp.first.second -= j*asciiw;
                 tmp.second.first -= i*asciih;
                 tmp.second.second -= j*asciiw;
-                drawSegmentDirect(sample, tmp, 1);
+                drawSegmentDirect(sample, tmp, 255); // setting val as 255 will increase misaligned err.
             }
 
             Eigen::Tensor<double, 0> tmp = sample.sum();
@@ -319,13 +341,13 @@ int main(int argc, char * argv[]) {
                 continue;
             }
 
-            std::thread ts[THREAD_CNT];
+            /*std::thread ts[THREAD_CNT];
             for(int k = 0; k < THREAD_CNT; k++) {
                 ts[k] = std::thread(fillDist, std::ref(distances), fCnt*((double)k/THREAD_CNT), fCnt*((double)(k+1)/THREAD_CNT),
                                     std::ref(sample), std::ref(asciiPNGs));
                 ts[k].join();
-            }
-            // fillDist(distances, 0, fCnt, sample, asciiPNGs);
+            }*/
+            fillDist(distances, 0, fCnt, sample, asciiPNGs);
             /*
             for(int i = 0; i < THREAD_CNT; i++) {
                 ts[i].join();
@@ -345,14 +367,15 @@ int main(int argc, char * argv[]) {
     }
     for(int i = 0; i < grCnt; i++) {
         for(int j = 0; j < gcCnt; j++) {
+            best[i][j] = buffer[i][j];
             std::cout << buffer[i][j];
         }
         std::cout << "\n";
     }
     std::cout << std::endl;
+    double ta = prevE/(grCnt*gcCnt); // t_a
     prevE /= K;
     double lastMinE = prevE;
-    double ta = prevE/(grCnt*gcCnt); // t_a
     std::cout << "Finished calc. E: " << prevE << std::endl;
     time_t seed = time(nullptr);
     std::mt19937 engine(seed);
@@ -377,9 +400,39 @@ int main(int argc, char * argv[]) {
             randJ = (mt() % (paths[randI].size() - 1)) + 1;
         // std::cout << randI << " " << randJ << " selected." << std::endl;
         toChange = std::make_pair(randI, randJ);
-        double E;
-        int dx = (mt() % asciih) - asciih/2;
-        int dy = (mt() % asciiw) - asciiw/2;
+        int dx, dy;
+        bool lengthNotZero = false;
+        do{
+            lengthNotZero = true;
+            dx = (mt() % asciih) - asciih/2;
+            dy = (mt() % asciiw) - asciiw/2;
+            if(toChange.second == 0) {
+                if(paths[toChange.first][toChange.second].first + dx == paths[toChange.first][toChange.second + 1].first) {
+                    if(paths[toChange.first][toChange.second].second + dx == paths[toChange.first][toChange.second + 1].second) {
+                        lengthNotZero = false;
+                    }
+                }
+            }
+            else if(toChange.second == paths[toChange.first].size() - 1) {
+                if(paths[toChange.first][toChange.second - 1].first + dx == paths[toChange.first][toChange.second].first) {
+                    if(paths[toChange.first][toChange.second - 1].second + dx == paths[toChange.first][toChange.second].second) {
+                        lengthNotZero = false;
+                    }
+                }
+            }
+            else {
+                if(paths[toChange.first][toChange.second - 1].first + dx == paths[toChange.first][toChange.second].first) {
+                    if(paths[toChange.first][toChange.second - 1].second + dx == paths[toChange.first][toChange.second].second) {
+                        lengthNotZero = false;
+                    }
+                }
+                if(paths[toChange.first][toChange.second].first + dx == paths[toChange.first][toChange.second + 1].first) {
+                    if(paths[toChange.first][toChange.second].second + dx == paths[toChange.first][toChange.second + 1].second) {
+                        lengthNotZero = false;
+                    }
+                }
+            }
+        }while(dx*dx + dy*dy > std::max(asciih, asciiw) || !lengthNotZero);
         paths.at(toChange.first).at(toChange.second).first += dx;
         paths.at(toChange.first).at(toChange.second).second += dy;
 
@@ -401,8 +454,16 @@ int main(int argc, char * argv[]) {
             segs.at(ssss + toChange.second).first.first += dx;
             segs.at(ssss + toChange.second).first.second += dy;
         }
+
         tmpMat2d.setConstant(0);
-        tmpMat2d = drawSegments(tmpMat2d, segs, 255);
+        for(int i = 0; i < grCnt; i++) {
+            for(int j = 0; j < gcCnt; j++) {
+                for(int k = 0; k < lines[i][j].size(); k++) {
+                    drawSegmentDirect(tmpMat2d, lines[i][j][k].first, 255);
+                }
+            }
+        }
+        // tmpMat2d = drawSegments(tmpMat2d, segs, 255);
         Image tmpImage = mat2dToImage(tmpMat2d);
         tmpPNG.setImage(tmpImage);
         tmpPNG.saveImage("main-sa-tmp.png");
@@ -447,7 +508,7 @@ int main(int argc, char * argv[]) {
             // std::cout << "needCalc " << i << " " << j << std::endl;
             double lengthSum = 0;
             for(int k = 0; k < lines[i][j].size(); k++)
-                lengthSum += eg::geo::norm(lines[i][j][k].first.first - lines[i][j][k].first.second);
+                lengthSum += eg::geo::euclideDist(lines[i][j][k].first.first, lines[i][j][k].first.second);
             // std::cout << "lengthSum: " << lengthSum << std::endl;
             if(lengthSum == 0) continue;
             double deform = 0;
@@ -468,7 +529,7 @@ int main(int argc, char * argv[]) {
                 Dot afterSecond = getChanged(before.second, originalLines[i][j][k].second, original, paths);
                 Segment after = std::make_pair(afterFirst, afterSecond);
                 // std::cout << "2" << std::endl;
-                double tttt = eg::math::calcDeform(before, after, segs);
+                double tttt = eg::math::calcDeform(before, after, segs, originalSegs);
                 if(tttt == 987) {
                     forceReset = true;
                     break;
@@ -480,7 +541,7 @@ int main(int argc, char * argv[]) {
                 tmp.first.second -= j*asciiw;
                 tmp.second.first -= i*asciih;
                 tmp.second.second -= j*asciiw;
-                drawSegmentDirect(sample, tmp, 1);
+                drawSegmentDirect(sample, tmp, 255); // setting val as 255 will increase misaligned err.
             }
             if(forceReset) break;
             prevErr.push_back(std::make_pair(std::make_pair(i, j), errCell(i, j)));
@@ -493,13 +554,14 @@ int main(int argc, char * argv[]) {
             }
             // std::cout << "calc distance" << std::endl;
             K++;
+            /*
             std::thread ts[THREAD_CNT];
             for(int k = 0; k < THREAD_CNT; k++) {
                 ts[k] = std::thread(fillDist, std::ref(distances), fCnt*((double)k/THREAD_CNT), fCnt*((double)(k+1)/THREAD_CNT),
                                     std::ref(sample), std::ref(asciiPNGs));
                 ts[k].join();
-            }
-            // fillDist(distances, 0, fCnt, sample, asciiPNGs);
+            }*/
+            fillDist(distances, 0, fCnt, sample, asciiPNGs);
             double minVal = INF;
             int minIndex = -1;
             for(int k = 0; k < fCnt; k++) {
@@ -514,6 +576,7 @@ int main(int argc, char * argv[]) {
             buffer[i][j] = getAsciiFromPath(names[minIndex])[0];
         }
 
+        double E;
         if(!forceReset) {
             E = 0;
             for(int i = 0; i < grCnt; i++)
@@ -529,20 +592,33 @@ int main(int argc, char * argv[]) {
             co = 0;
             for(int i = 0; i < grCnt; i++) {
                 for(int j = 0; j < gcCnt; j++) {
+                    best[i][j] = buffer[i][j];
                     std::cout << buffer[i][j];
                 }
                 std::cout << "\n";
             }
             std::cout << std::endl;
-            std::cout << "^^^====E: " << E << std::endl;
+            std::cout << "^^^====E: " << E << " c: " << c << " co: " << co << std::endl;
         }
         else {
-            if(!forceReset && ++co >= 50) break;
-            double delta = abs(E - prevE);
-            double t = 0.2*ta*std::pow(c, 0.997);
-            double Pr = std::exp(-delta/t);
-            double ran = (double)mt()/INF;
-            if(forceReset || Pr >= ran) { // goto previous state.
+            double Pr, ran;
+            if(!forceReset) {
+                if(++co >= 5000) break;
+                double delta = abs(E - prevE);
+                double t = 0.2*ta*std::pow(c, 0.997);
+                Pr = std::exp(-delta/t);
+                ran = (double)mt()/INF;
+                for(int i = 0; i < grCnt; i++) {
+                    for(int j = 0; j < gcCnt; j++) {
+                        std::cout << buffer[i][j];
+                    }
+                    std::cout << "\n";
+                }
+                std::cout << std::endl;
+                std::cout << "^^^====E: " << E << " c: " << c << " co: " << co << std::endl;
+                // std::cout << "Pr " << Pr << " RAN " << ran << std::endl;
+            }
+            if(forceReset || (Pr >= ran)) { // goto previous state.
                 for(const auto & p : prevErr) {
                     int i = p.first.first;
                     int j = p.first.second;
@@ -566,10 +642,24 @@ int main(int argc, char * argv[]) {
                 }
             }
         }
-        prevE = E;
-        c++;
+        if(!forceReset) {
+            prevE = E;
+            c++;
+        }
     }
-    for(int i = 0; i < grCnt; i++) delete[] buffer[i];
+    for(int i = 0; i < grCnt; i++) {
+        for(int j = 0; j < gcCnt; j++) {
+            std::cout << best[i][j];
+        }
+        std::cout << "\n";
+    }
+    std::cout << std::endl;
+    std::cout << "^^^====E: " << lastMinE << std::endl;
+    for(int i = 0; i < grCnt; i++) {
+        delete[] buffer[i];
+        delete[] best[i];
+    }
+    delete[] best;
     delete[] buffer;
     delete[] distances;
     delete[] asciiPNGs;

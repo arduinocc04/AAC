@@ -5,7 +5,6 @@
  */
 #define _USE_MATH_DEFINES
 #include <cmath>
-#include <iostream>
 
 #include "egGeometry.hpp"
 #include "egMath.hpp"
@@ -47,7 +46,7 @@ Mat2d eg::math::conv(const Mat2d & input, const Mat2d & kernel) {
 }
 
 // I wanted to name this function as rmse, but stupid compiler thought it's ambiguous.
-double calcrmse(const Mat2d & a, const Mat2d & b) {
+double calcse(const Mat2d & a, const Mat2d & b) {
     Tensor<double, 0> tmp = (a-b).square().sum();
     return std::sqrt(tmp(0));
 }
@@ -57,7 +56,7 @@ double bhattacharyyaDist(const Mat2d & ha, const Mat2d & hb) {
     int w = ha.dimensions()[1];
     Eigen::Tensor<double, 0> sa = ha.sum();
     Eigen::Tensor<double, 0> sb = hb.sum();
-    if(sa(0) == 0 || sb(0) == 0) return calcrmse(ha, hb); // todo change..
+    if(sa(0) == 0 || sb(0) == 0) return calcse(ha, hb); // todo change..
     double n = std::sqrt(sa(0))*std::sqrt(sb(0));
     double s = 0;
     for(int i = 0; i < h; i++) {
@@ -75,7 +74,7 @@ double calcAE(const Mat2d & ha, const Mat2d & hb) { // absolute error
     int res = 0;
     for(int i = 0; i < h; i++)
         for(int j = 0; j < w; j++)
-            res += abs(t(i, j));
+            res += std::abs(t(i, j));
     return res;
 }
 
@@ -98,7 +97,7 @@ double eg::math::compareMat2d(const Mat2d & a, const Mat2d & b, int method) {
         throw eg::exceptions::InvalidParameter();
     switch(method) {
         case eg::matCmpMethod::rmse:
-            return calcrmse(a, b);
+            return calcse(a, b);
         case eg::matCmpMethod::shape: {
             std::pair<Paths, std::vector<int>> tmpA = eg::imgproc::getContours(a, eg::contourMethod::suzuki);
             std::pair<Paths, std::vector<int>> tmpB = eg::imgproc::getContours(b, eg::contourMethod::suzuki);
@@ -122,10 +121,12 @@ double eg::math::compareMat2d(const Mat2d & a, const Mat2d & b, int method) {
             double M = n(0) + np(0);
             if(M == 0) return 0;
 
+            Mat2d aBlurred = eg::imgproc::blur(a, eg::blurMethod::gaussian);
+            Mat2d bBlurred = eg::imgproc::blur(b, eg::blurMethod::gaussian);
             for(int i = 0; i < candidates.size(); i++) {
-                Mat2d histogramA = eg::imgproc::logpolarForMat2d(a, candidates[i]);
-                Mat2d histogramB = eg::imgproc::logpolarForMat2d(b, candidates[i]);
-                res += calcrmse(histogramA, histogramB);
+                Mat2d histogramA = eg::imgproc::logpolarForMat2d(aBlurred, candidates[i]);
+                Mat2d histogramB = eg::imgproc::logpolarForMat2d(bBlurred, candidates[i]);
+                res += calcse(histogramA, histogramB);
             }
 
             return res/M;
@@ -140,8 +141,27 @@ double calcDeformAngle(const Segment & a, const Segment & b) {
     const double aLength = eg::geo::euclideDist(a.first, a.second);
     const double bLength = eg::geo::euclideDist(b.first, b.second);
     const double t = eg::geo::dot(a.first - a.second, b.first - b.second)/(aLength*bLength);
-    if(t != t) return 987;
-    const double theta = std::acos(t);
+    if(aLength*bLength == 0) {
+        // std::cout << "A " << a.first.first << "/" << a.first.second << " " << a.second.first << "/" << a.second.second << std::endl;
+        // std::cout << "B " << b.first.first << "/" << b.first.second << " " << b.second.first << "/" << b.second.second << std::endl;
+        // std::cout << "aLength " << aLength << std::endl;
+        // std::cout << "bLength " << bLength << std::endl;
+        // std::cout << "T " << t << std::endl;
+        // std::cout << "ALNEBEL 0" << std::endl;
+        throw eg::exceptions::InvalidParameter();
+    }
+    if(t > 1 || t < -1) return 0;
+    if(t > 1 || t < -1) {
+        // std::cout << "A " << a.first.first << "/" << a.first.second << " " << a.second.first << "/" << a.second.second << std::endl;
+        // std::cout << "B " << b.first.first << "/" << b.first.second << " " << b.second.first << "/" << b.second.second << std::endl;
+        // std::cout << "aLength " << aLength << std::endl;
+        // std::cout << "bLength " << bLength << std::endl;
+        // std::cout << "T " << t << std::endl;
+        // std::cout << "ABS BIG ONE" << std::endl;
+        throw eg::exceptions::InvalidParameter();
+    }
+    double theta = std::acos(t);
+    theta = std::min(theta, M_PI - theta);
     // std::cout << t << std::endl;
     return std::exp(lambda*theta);
 }
@@ -152,17 +172,20 @@ double calcDeformLength(const Segment & a, const Segment & b) {
 
     const double r = eg::geo::euclideDist(a.first, a.second);
     const double rr = eg::geo::euclideDist(b.first, b.second);
-    const double lengthDelta = abs(r - rr);
+    const double lengthDelta = std::abs(r - rr);
     const double shortL = std::min(r, rr);
-    // if(shortL < ZERO)  return 987;
     const double longL = std::max(r, rr);
+    if(shortL == 0) {
+        // std::cout << "shortL Z" << std::endl;
+        throw eg::exceptions::InvalidParameter();
+    }
     const double t = std::max(std::exp(lambda*lengthDelta),
                      std::exp(delta*longL/shortL));
-    if(t != t) return 987;
     return t;
 }
 
 double eg::math::calcDeformLocal(const Segment & before, const Segment & after) {
+    if(before == after) return 1;
     double t = calcDeformAngle(before, after);
     double tt = calcDeformLength(before, after);
     // std::cout << "ANGLE " << t << " LEN " << tt << std::endl;
@@ -172,13 +195,18 @@ double eg::math::calcDeformLocal(const Segment & before, const Segment & after) 
 /**
  * @attention this implementation isn't same in the paper.
  */
-double eg::math::calcAccess(const Segment & before, const Segment & after, const Segments & ss) {
+double eg::math::calcAccess(const Segment & before, const Segment & after, const Segments & ss, const Segments & original) {
     Vec2 u = before.second - before.first;
     Dot mid = before.first + u/2;
+	u = after.second - after.first;
+    Dot midAfter = after.first + u/2;
+
     std::vector<std::pair<double, int>> calced;
-    for(int i = 0; i < ss.size(); i++) {
-        if(ss[i] == before) continue;
-        calced.push_back(std::make_pair(eg::geo::distSegDot(ss[i], mid), i));
+    for(int i = 0; i < original.size(); i++) {
+        double dist = eg::geo::distSegDot(original[i], mid);
+        if(dist == 0) continue;
+		if(eg::geo::distSegDot(ss[i], midAfter) == 0) continue;
+        calced.push_back(std::make_pair(dist, i));
     }
     std::sort(calced.begin(), calced.end());
     std::vector<std::pair<double, double>> used;
@@ -186,18 +214,12 @@ double eg::math::calcAccess(const Segment & before, const Segment & after, const
     for(int j = 0; j < calced.size(); j++) {
         int i = calced[j].second;
         double startAngle, endAngle;
-        if(ss[i].first.first == mid.first)
-            startAngle = 0;
-        else
-            startAngle = std::atan2(ss[i].first.second - mid.second, ss[i].first.first - mid.first) + M_PI;
-        if(ss[i].second.first == mid.first)
-            endAngle = 0;
-        else
-            endAngle = std::atan2(ss[i].second.second - mid.second, ss[i].second.first - mid.first) + M_PI;
+        startAngle = std::atan2(original[i].first.second - mid.second, original[i].first.first - mid.first) + M_PI;
+        endAngle = std::atan2(original[i].second.second - mid.second, original[i].second.first - mid.first) + M_PI;
         if(startAngle > endAngle) {
             double tmp = startAngle;
             startAngle = endAngle;
-            endAngle = startAngle;
+            endAngle = tmp;
         }
 
         bool insert = true;
@@ -208,11 +230,22 @@ double eg::math::calcAccess(const Segment & before, const Segment & after, const
             }
         }
 
+        /*
+        int dddddddd = used.size();
+        if(true) {
+            std::cout << "used before======" << std::endl;
+            for(int i = 0; i < used.size(); i++) {
+                std::cout << used[i].first << " " << used[i].second << std::endl;
+            }
+            std::cout << "used before====" <<  std::endl;
+        } */
+
+        std::vector<int> toRemove;
         if(insert) {
             candidates.push_back(i);
+
             double l = startAngle;
             double r = endAngle;
-            std::vector<int> toRemove;
             for(int k = 0; k < used.size(); k++) { // merge overlapped intervals
                 double tl = used[k].first, tr = used[k].second;
                 if((tl <= l && l <= tr) || (tl <= r && r <= tr) || (l <= tl && tl <= r) || (l <= tr && tr <= r)) {
@@ -226,44 +259,78 @@ double eg::math::calcAccess(const Segment & before, const Segment & after, const
                 used.erase(used.begin() + toRemove[k] - k);
             }
         }
+        /*
+        if(toRemove.size()) {
+            std::cout << "used after======" << std::endl;
+            std::cout << "NOW: " << startAngle << " " << endAngle << std::endl;
+            for(int i = 0; i < used.size(); i++) {
+                std::cout << used[i].first << " " << used[i].second << std::endl;
+            }
+            std::cout << "used after====" <<  std::endl;
+        } */
     }
 
-    u = after.second - after.first;
-    Dot midAfter = after.first + u/2;
-
     double lengthSum = 0;
-    for(int i = 0; i < candidates.size(); i++) {
-        lengthSum += eg::geo::distSegDot(ss[i], mid);
+    for(int j = 0; j < candidates.size(); j++) {
+        int i = candidates[j];
+        lengthSum += eg::geo::distSegDot(original[i], mid);
     }
     // if(lengthSum < ZERO) return 987;
     double res = 0;
-    for(int i = 0; i < candidates.size(); i++) {
-        double w = eg::geo::distSegDot(ss[i], mid)/lengthSum;
+    for(int j = 0; j < candidates.size(); j++) {
+        int i = candidates[j];
+        double w = eg::geo::distSegDot(original[i], mid)/lengthSum;
         Dot mostCloseToMid;
-        if(eg::geo::dot(ss[i].second - ss[i].first, mid - ss[i].first) < 0) {
-            mostCloseToMid = ss[i].first;
+		Dot mostCloseToMidAfter;
+        if(eg::geo::dot(original[i].second - original[i].first, mid - original[i].first) < 0) {
+            // std::cout << "TYPE 0" << std::endl;
+            mostCloseToMid = original[i].first;
+			mostCloseToMidAfter = ss[i].first;
         }
-        else if(eg::geo::dot(ss[i].first - ss[i].second, mid - ss[i].second) < 0) {
-            mostCloseToMid = ss[i].second;
+        else if(eg::geo::dot(original[i].first - original[i].second, mid - original[i].second) < 0) {
+            // std::cout << "TYPE 1" << std::endl;
+            mostCloseToMid = original[i].second;
+			mostCloseToMidAfter = ss[i].second;
         }
         else {
-            u = ss[i].second - ss[i].first;
-            Vec2 v = mid - ss[i].first;
+            // std::cout << "TYPE 2" << std::endl;
+            u = original[i].second - original[i].first;
+            Vec2 v = mid - original[i].first;
+            /*
+            std::cout << "u " << u.first << " " << u.second << std::endl;
+            std::cout << "v " << v.first << " " << v.second << std::endl;
+            std::cout << "dot " << eg::geo::dot(u, v) << std::endl;
+            std::cout << "norm " << eg::geo::norm(u) << std::endl;
+            std::cout << "originalifirst " << original[i].first.first << " " << original[i].first.second << std::endl;
+            */
             // if(eg::geo::norm(u) < ZERO) return 987;
-            mostCloseToMid = ss[i].first + eg::geo::dot(u, v)/eg::geo::norm(u)*u;
+            mostCloseToMid = original[i].first + eg::geo::dot(u, v)/eg::geo::dot(u, u)*u;
+
+			u = ss[i].second - ss[i].first;
+			v = midAfter - ss[i].first;
+			mostCloseToMidAfter = ss[i].first + eg::geo::dot(u, v)/eg::geo::dot(u, u)*u;
         }
-        double t = w*calcDeformLocal(std::make_pair(mid, mostCloseToMid), std::make_pair(midAfter, mostCloseToMid));
+        Segment beforeTmp = std::make_pair(mid, mostCloseToMid);
+        Segment afterTmp = std::make_pair(midAfter, mostCloseToMidAfter);
+        /*
+        std::cout << "ACCESS j " << j << " i " << i << std::endl;
+		std::cout << "W " << w << std::endl;
+		std::cout << "beforetmp " << beforeTmp.first.first << "/" << beforeTmp.first.second << " " << beforeTmp.second.first << "/" << beforeTmp.second.second << std::endl;
+		std::cout << "aftertmp " << afterTmp.first.first << "/" << afterTmp.first.second << " " << afterTmp.second.first << "/" << afterTmp.second.second << std::endl;
+        */
+        double t = w*calcDeformLocal(beforeTmp, afterTmp);
+		// std::cout << "t " << t << std::endl;
         res += t;
     }
     if(res != res) return 987;
     return res;
 }
 
-double eg::math::calcDeform(const Segment & before, const Segment & after, const Segments & ss) {
+double eg::math::calcDeform(const Segment & before, const Segment & after, const Segments & ss, const Segments & original) {
     if(eg::geo::euclideDist(after.first, after.second) < 1e-8) return  987;
     if(eg::geo::euclideDist(before.first, before.second) < 1e-8) return  987;
     double t = calcDeformLocal(before, after);
-    double tt = calcAccess(before, after, ss);
+    double tt = calcAccess(before, after, ss, original);
     // std::cout << "LO " << t << " ACC " << tt << std::endl;
     double c = std::max(t, tt);
     if(c != c) return 987;
