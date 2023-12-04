@@ -39,7 +39,7 @@ int main(int argc, char * argv[]) {
         std::cout << "Cycled=====" << j << "\n";
         Mat2d tmp = cycle(t, j);
         print(tmp);
-        double err = eg::math::compareMat2d(t, tmp, eg::matCmpMethod::shape);
+        double err = eg::math::compareMat2d(t, tmp, eg::matCmpMethod::logpolar);
         std::cout << err << std::endl;
     }
 }
