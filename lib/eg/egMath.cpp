@@ -5,6 +5,7 @@
  */
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <iostream>
 
 #include "egGeometry.hpp"
 #include "egMath.hpp"
@@ -115,7 +116,6 @@ double eg::math::compareMat2d(const Mat2d & a, const Mat2d & b, int method) {
                 for(int j = 0; j < w; j += 2) // j += 2 is suggested in the paper structure-based ascii art
                     candidates.push_back(std::make_pair(i, j));
 
-            double res = 0;
             Eigen::Tensor<double, 0> n = a.sum();
             Eigen::Tensor<double, 0> np = b.sum();
             double M = n(0) + np(0);
@@ -123,13 +123,14 @@ double eg::math::compareMat2d(const Mat2d & a, const Mat2d & b, int method) {
 
             Mat2d aBlurred = eg::imgproc::blur(a, eg::blurMethod::gaussian);
             Mat2d bBlurred = eg::imgproc::blur(b, eg::blurMethod::gaussian);
+            double res = 0;
             for(int i = 0; i < candidates.size(); i++) {
                 Mat2d histogramA = eg::imgproc::logpolarForMat2d(aBlurred, candidates[i]);
                 Mat2d histogramB = eg::imgproc::logpolarForMat2d(bBlurred, candidates[i]);
-                res += calcse(histogramA, histogramB);
+                res += bhattacharyyaDist(histogramA, histogramB);
             }
 
-            return res/M;
+            return res;///M;
         }
         default:
             throw eg::exceptions::InvalidParameter();
@@ -142,22 +143,22 @@ double calcDeformAngle(const Segment & a, const Segment & b) {
     const double bLength = eg::geo::euclideDist(b.first, b.second);
     const double t = eg::geo::dot(a.first - a.second, b.first - b.second)/(aLength*bLength);
     if(aLength*bLength == 0) {
-        // std::cout << "A " << a.first.first << "/" << a.first.second << " " << a.second.first << "/" << a.second.second << std::endl;
-        // std::cout << "B " << b.first.first << "/" << b.first.second << " " << b.second.first << "/" << b.second.second << std::endl;
-        // std::cout << "aLength " << aLength << std::endl;
-        // std::cout << "bLength " << bLength << std::endl;
-        // std::cout << "T " << t << std::endl;
-        // std::cout << "ALNEBEL 0" << std::endl;
+        std::cout << "A " << a.first.first << "/" << a.first.second << " " << a.second.first << "/" << a.second.second << std::endl;
+        std::cout << "B " << b.first.first << "/" << b.first.second << " " << b.second.first << "/" << b.second.second << std::endl;
+        std::cout << "aLength " << aLength << std::endl;
+        std::cout << "bLength " << bLength << std::endl;
+        std::cout << "T " << t << std::endl;
+        std::cout << "ALNEBEL 0" << std::endl;
         throw eg::exceptions::InvalidParameter();
     }
     if(t > 1 || t < -1) return 0;
     if(t > 1 || t < -1) {
-        // std::cout << "A " << a.first.first << "/" << a.first.second << " " << a.second.first << "/" << a.second.second << std::endl;
-        // std::cout << "B " << b.first.first << "/" << b.first.second << " " << b.second.first << "/" << b.second.second << std::endl;
-        // std::cout << "aLength " << aLength << std::endl;
-        // std::cout << "bLength " << bLength << std::endl;
-        // std::cout << "T " << t << std::endl;
-        // std::cout << "ABS BIG ONE" << std::endl;
+        std::cout << "A " << a.first.first << "/" << a.first.second << " " << a.second.first << "/" << a.second.second << std::endl;
+        std::cout << "B " << b.first.first << "/" << b.first.second << " " << b.second.first << "/" << b.second.second << std::endl;
+        std::cout << "aLength " << aLength << std::endl;
+        std::cout << "bLength " << bLength << std::endl;
+        std::cout << "T " << t << std::endl;
+        std::cout << "ABS BIG ONE" << std::endl;
         throw eg::exceptions::InvalidParameter();
     }
     double theta = std::acos(t);
@@ -176,7 +177,7 @@ double calcDeformLength(const Segment & a, const Segment & b) {
     const double shortL = std::min(r, rr);
     const double longL = std::max(r, rr);
     if(shortL == 0) {
-        // std::cout << "shortL Z" << std::endl;
+        std::cout << "shortL Z" << std::endl;
         throw eg::exceptions::InvalidParameter();
     }
     const double t = std::max(std::exp(lambda*lengthDelta),

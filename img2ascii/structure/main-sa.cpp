@@ -1,6 +1,6 @@
 /**
  * @file main.cpp
- * @author Daniel cho
+ * @author Daniel Cho
  * @date 2023.12.3
  * @version 0.0.1
  */
@@ -17,9 +17,10 @@
 #include "egMath.hpp"
 #include "egGeometry.hpp"
 #include "egTrace.hpp"
+#include "egTool.hpp"
 
 #define INF 987654321
-#define THREAD_CNT 8
+#define THREAD_CNT 4
 
 using namespace eg::imgproc;
 namespace fs = std::filesystem;
@@ -55,7 +56,6 @@ Mat2d * getAllImages(std::string path, int fCnt) {
         ans[i] = markOutlier(ans[i], 70); // 70 is founded by experiment.
         ans[i] = eg::imgproc::grassfire(ans[i], ans[i]);
         ans[i] = binary(ans[i], 1);
-        ans[i] = 255*ans[i]; // This is necessary because it will increase error when misaligned.
         i += 1;
     }
     std::cout << std::endl;
@@ -83,95 +83,6 @@ void fillDist(double * distances, int iStart, int iEnd, Mat2d & tmp, Mat2d * asc
 
 bool isDotInAABB(const Dot & p, const Dot & lu, const Dot & rd) { // Don't include border
     return lu.first < p.first && p.first < rd.first && lu.second < p.second && p.second < rd.second;
-}
-
-int computeOutCode(const Dot & p, const Dot & lu, const Dot & rd) {
-    const int INSIDE = 0;
-    const int LEFT = 1;
-    const int RIGHT = 2;
-    const int BOTTOM = 4;
-    const int TOP = 8;
-
-    int code = INSIDE;
-
-    if(p.first < lu.first)
-        code |= LEFT;
-    else if(p.first > rd.first)
-        code |= RIGHT;
-    if(p.second < lu.second)
-        code |= BOTTOM;
-    else if(p.second > rd.second)
-        code |= TOP;
-
-    return code;
-}
-
-/**
- * @breif do line clipping using Cohen-Sutherland algorithm
- * @see https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
- */
-Segment clip(const Segment & s, const Dot & lu, const Dot & rd) {
-    const int INSIDE = 0;
-    const int LEFT = 1;
-    const int RIGHT = 2;
-    const int BOTTOM = 4;
-    const int TOP = 8;
-
-    int outcode0 = computeOutCode(s.first, lu, rd);
-    int outcode1 = computeOutCode(s.second, lu, rd);
-    bool accept = false;
-
-    Segment ans = s;
-
-    while(true) {
-        if(!(outcode0 | outcode1)) {
-            accept = true;
-            break;
-        }
-        else if(outcode0 & outcode1)
-            break;
-        else {
-            int outcodeOut = (outcode1 > outcode0)?outcode1:outcode0;
-            int x, y;
-            int x0 = s.first.first;
-            int y0 = s.first.second;
-            int x1 = s.second.first;
-            int y1 = s.second.second;
-            int xmax = rd.first;
-            int xmin = lu.first;
-            int ymax = rd.second;
-            int ymin = lu.second;
-            if(outcodeOut & TOP) {
-                x = round(x0 + (x1 - x0)*(ymax - y0)/(y1 - y0));
-                y = ymax;
-            }
-            else if(outcodeOut & BOTTOM) {
-                x = round(x0 + (x1 - x0)*(ymin - y0)/(y1 - y0));
-                y = ymin;
-            }
-            else if(outcodeOut & RIGHT) {
-                y = round(y0 + (y1 - y0)*(xmax - x0)/(x1 - x0));
-                x = xmax;
-            }
-            else if(outcodeOut & LEFT) {
-                y = round(y0 + (y1 - y0)*(xmin - x0)/(x1 - x0));
-                x = xmin;
-            }
-            if(outcodeOut == outcode0) {
-                ans.first.first = x;
-                ans.first.second = y;
-                outcode0 = computeOutCode(ans.first, lu, rd);
-            }
-            else {
-                ans.second.first = x;
-                ans.second.second = y;
-                outcode1 = computeOutCode(ans.second, lu, rd);
-            }
-        }
-    }
-    if(accept)
-        return ans;
-    return std::make_pair(std::make_pair(-1, -1), std::make_pair(-1, -1));
 }
 
 std::pair<int, int> getChanged(const std::pair<int, int> & coord, const std::pair<int, int> & lineIdx, const Paths & original, const Paths & paths) {
@@ -213,21 +124,25 @@ int main(int argc, char * argv[]) {
     Mat2d t = cvtGray(i, eg::grayCvtMethod::mean);
     std::cout << "Getting Edge of input image" << std::endl;
     t = getEdge(t, eg::edgeDetectMethod::gradient);
+
     t = markOutlier(t, 10);
     t = dilate(t, 1, 3);
     t = erode(t, 1, 3);
     t = dilate(t, 3, 1);
     t = erode(t, 3, 1);
     i = mat2dToImage(t);
+
     std::cout << "getContours" << std::endl;
     auto contours = getContours(t, eg::contourMethod::suzuki);
     Segments segs;
     std::cout << "Merging contours" << std::endl;
     Paths paths(contours.first.size());
+    int k = 0;
     for(int i = 2; i < contours.first.size(); i++) {
         if(contours.first[i].size() == 0) continue;
         Path tmp = eg::trace::approxPath(contours.first[i]);
-        paths[i - 2] = tmp;
+        if(tmp.size() > 4)
+            paths[k++] = tmp;
         for(int j = 1; j < tmp.size(); j++)
             segs.push_back(std::make_pair(tmp[j - 1], tmp[j]));
     }
@@ -242,6 +157,7 @@ int main(int argc, char * argv[]) {
 
     char devnull[10];
 
+    std::cout << "segs size: " << segs.size() << std::endl;
 
     std::cout << "not DEFORM " << eg::math::calcDeform(segs[0], segs[0], segs, originalSegs) << std::endl;
 
@@ -257,28 +173,16 @@ int main(int argc, char * argv[]) {
                     Dot lu = std::make_pair(i*asciih, j*asciiw);
                     Dot rd = std::make_pair((i + 1)*asciih, (j + 1)*asciiw);
                     Segment original = std::make_pair(paths[k][l - 1], paths[k][l]);
-                    Segment tmp = clip(original, lu, rd);
+                    Segment tmp = eg::tool::clip(original, lu, rd);
                     if(tmp.first == tmp.second) continue;
                     if(tmp.first.first == -1) continue;
-                    // std::cout << lu.first << "/" << lu.second << " " << rd.first << "/" << rd.second
-                            //   << " " << "clip"  << tmp.first.first << " " << tmp.first.second << "/" << tmp.second.first << " " << tmp.second.second << std::endl;
 
                     lines[i][j].push_back(std::make_pair(tmp, std::make_pair(k, l)));
                 }
             }
         }
     }
-    /*
-    for(int i = 0; i < grCnt; i++) {
-        for(int j = 0; j < gcCnt; j++) {
-            for(int k = 0; k < lines[i][j].size(); k++) {
-                if(lines[i][j][k].first.first == lines[i][j][k].first.second) {
-                    std::cout << "SAME" << std::endl;
-                }
-            }
-        }
-    }
-    */
+
     std::cout << "Decompose finished" << std::endl;
     std::vector<std::vector<std::vector<std::pair<Segment, std::pair<int, int>>>>> originalLines = lines;
     Mat2d decomTestMat(inputImage.info.height, inputImage.info.width);
@@ -299,9 +203,7 @@ int main(int argc, char * argv[]) {
     std::cout << "Calculating initial E" << std::endl;
 
     int co = 0;
-    int c = 0; // iteration index
-    Mat2d zeros(inputImage.info.height, inputImage.info.width);
-    zeros.setConstant(0);
+    int c = 1; // iteration index
 
     Mat2d sample(asciih, asciiw);
 
@@ -310,8 +212,11 @@ int main(int argc, char * argv[]) {
     char ** best = new char * [grCnt];
     for(int i = 0; i < grCnt; i++) {
         buffer[i] = new char[gcCnt];
-        best[i] = new char[grCnt];
+        best[i] = new char[gcCnt];
     }
+    for(int i = 0; i < grCnt; i++)
+        for(int j = 0; j < gcCnt; j++)
+            buffer[i][j] = ' ';
     double prevE = 0;
     /*std::thread ts[THREAD_CNT];
     for(int i = 0; i < THREAD_CNT; i++)
@@ -330,24 +235,24 @@ int main(int argc, char * argv[]) {
                 tmp.first.second -= j*asciiw;
                 tmp.second.first -= i*asciih;
                 tmp.second.second -= j*asciiw;
-                drawSegmentDirect(sample, tmp, 255); // setting val as 255 will increase misaligned err.
+                drawSegmentDirect(sample, tmp, 1);
             }
 
             Eigen::Tensor<double, 0> tmp = sample.sum();
-            if(tmp(0) < 2) {
+            if(tmp(0) < 4) {
                 buffer[i][j] = ' ';
                 errCell(i, j) = 0;
                 --K;
                 continue;
             }
 
-            /*std::thread ts[THREAD_CNT];
+            std::thread ts[THREAD_CNT];
             for(int k = 0; k < THREAD_CNT; k++) {
                 ts[k] = std::thread(fillDist, std::ref(distances), fCnt*((double)k/THREAD_CNT), fCnt*((double)(k+1)/THREAD_CNT),
                                     std::ref(sample), std::ref(asciiPNGs));
                 ts[k].join();
-            }*/
-            fillDist(distances, 0, fCnt, sample, asciiPNGs);
+            }
+            // fillDist(distances, 0, fCnt, sample, asciiPNGs);
             /*
             for(int i = 0; i < THREAD_CNT; i++) {
                 ts[i].join();
@@ -373,31 +278,29 @@ int main(int argc, char * argv[]) {
         std::cout << "\n";
     }
     std::cout << std::endl;
-    double ta = prevE/(grCnt*gcCnt); // t_a
-    prevE /= K;
+    double ta = prevE/(grCnt*gcCnt);
+    if(K > 0) prevE /= K;
     double lastMinE = prevE;
     std::cout << "Finished calc. E: " << prevE << std::endl;
     time_t seed = time(nullptr);
+    std::cout << "seed: " << seed << std::endl;
     std::mt19937 engine(seed);
     std::uniform_int_distribution<int> distribution(0, INF);
     auto mt = std::bind(distribution, engine);
 
     PNG tmpPNG;
-    tmpPNG.openImage(inputImage.getInputPath());
-    Mat2d tmpMat2d(tmpPNG.info.height, tmpPNG.info.width);
+    tmpPNG.openImage(inputImagePath);
+    Mat2d tmpMat2d(asciih*grCnt, asciiw*gcCnt);
 
     while(true) {
         std::pair<int, int> toChange;
         int randI;
+        std::cout << paths.size() << std::endl;
         do{
             randI = mt() % paths.size();
         }while(paths.at(randI).size() < 2);
         // std::cout << randI << "SS" << paths.at(randI).size() << std::endl;
-        int randJ;
-        if(paths.at(randI).size() == 1)
-            randJ = 1;
-        else
-            randJ = (mt() % (paths[randI].size() - 1)) + 1;
+        int randJ = mt() % paths[randI].size();
         // std::cout << randI << " " << randJ << " selected." << std::endl;
         toChange = std::make_pair(randI, randJ);
         int dx, dy;
@@ -408,31 +311,31 @@ int main(int argc, char * argv[]) {
             dy = (mt() % asciiw) - asciiw/2;
             if(toChange.second == 0) {
                 if(paths[toChange.first][toChange.second].first + dx == paths[toChange.first][toChange.second + 1].first) {
-                    if(paths[toChange.first][toChange.second].second + dx == paths[toChange.first][toChange.second + 1].second) {
+                    if(paths[toChange.first][toChange.second].second + dy == paths[toChange.first][toChange.second + 1].second) {
                         lengthNotZero = false;
                     }
                 }
             }
             else if(toChange.second == paths[toChange.first].size() - 1) {
-                if(paths[toChange.first][toChange.second - 1].first + dx == paths[toChange.first][toChange.second].first) {
-                    if(paths[toChange.first][toChange.second - 1].second + dx == paths[toChange.first][toChange.second].second) {
+                if(paths[toChange.first][toChange.second - 1].first == paths[toChange.first][toChange.second].first + dx) {
+                    if(paths[toChange.first][toChange.second - 1].second == paths[toChange.first][toChange.second].second + dy) {
                         lengthNotZero = false;
                     }
                 }
             }
             else {
-                if(paths[toChange.first][toChange.second - 1].first + dx == paths[toChange.first][toChange.second].first) {
-                    if(paths[toChange.first][toChange.second - 1].second + dx == paths[toChange.first][toChange.second].second) {
+                if(paths[toChange.first][toChange.second - 1].first == paths[toChange.first][toChange.second].first + dx) {
+                    if(paths[toChange.first][toChange.second - 1].second == paths[toChange.first][toChange.second].second + dy) {
                         lengthNotZero = false;
                     }
                 }
                 if(paths[toChange.first][toChange.second].first + dx == paths[toChange.first][toChange.second + 1].first) {
-                    if(paths[toChange.first][toChange.second].second + dx == paths[toChange.first][toChange.second + 1].second) {
+                    if(paths[toChange.first][toChange.second].second + dy == paths[toChange.first][toChange.second + 1].second) {
                         lengthNotZero = false;
                     }
                 }
             }
-        }while(dx*dx + dy*dy > std::max(asciih, asciiw) || !lengthNotZero);
+        }while(dx*dx + dy*dy > std::max(asciih, asciiw)*std::max(asciih, asciiw) || !lengthNotZero);
         paths.at(toChange.first).at(toChange.second).first += dx;
         paths.at(toChange.first).at(toChange.second).second += dy;
 
@@ -445,8 +348,8 @@ int main(int argc, char * argv[]) {
             segs.at(ssss + toChange.second).first.second += dy;
         }
         else if(toChange.second == paths[toChange.first].size() - 1) {
-            segs.at(ssss + toChange.second).second.first += dx;
-            segs.at(ssss + toChange.second).second.second += dy;
+            segs[ssss + toChange.second - 1].second.first += dx;
+            segs[ssss + toChange.second - 1].second.second += dy;
         }
         else {
             segs.at(ssss + toChange.second - 1).second.first += dx;
@@ -455,47 +358,185 @@ int main(int argc, char * argv[]) {
             segs.at(ssss + toChange.second).first.second += dy;
         }
 
+        int h = inputImage.info.height;
+        int w = inputImage.info.width;
+        Image tmpImage(h, w, 4);
         tmpMat2d.setConstant(0);
-        for(int i = 0; i < grCnt; i++) {
-            for(int j = 0; j < gcCnt; j++) {
-                for(int k = 0; k < lines[i][j].size(); k++) {
-                    drawSegmentDirect(tmpMat2d, lines[i][j][k].first, 255);
-                }
-            }
-        }
-        // tmpMat2d = drawSegments(tmpMat2d, segs, 255);
-        Image tmpImage = mat2dToImage(tmpMat2d);
-        tmpPNG.setImage(tmpImage);
-        tmpPNG.saveImage("main-sa-tmp.png");
-        std::cout << "TMP IMAGE generated" << std::endl;
-        // std::cout << "HI" << std::endl;
+
+        std::vector<std::vector<std::vector<std::pair<Segment, std::pair<int, int>>>>> removedLines(grCnt);
+        for(int i = 0; i < grCnt; i++) removedLines[i].resize(gcCnt);
+
         std::set<std::pair<int, int>> needCalc;
         for(int i = 0; i < grCnt; i++) {
             for(int j = 0; j < gcCnt; j++) {
+                std::vector<int> toRemove;
                 for(int k = 0; k < lines[i][j].size(); k++) {
-                    if(lines[i][j][k].second == toChange) {
+                    if(lines[i][j][k].second == toChange || (lines[i][j][k].second.first == toChange.first && toChange.second == 0 && lines[i][j][k].second.second == 1)) {
                         needCalc.insert(std::make_pair(i, j));
-                        lines[i][j].erase(lines[i][j].begin() + k);
+                        drawSegmentDirect(tmpMat2d, lines[i][j][k].first, 255);
+                        removedLines[i][j].push_back(lines[i][j][k]);
+                        toRemove.push_back(k);
+                        K--;
+                        break;
+                    }
+                    else if(lines[i][j][k].second.first == toChange.first && (lines[i][j][k].second.second == toChange.second + 1 || (toChange.second == lines[i][j][k].second.second))) {
+                        needCalc.insert(std::make_pair(i, j));
+                        drawSegmentDirect(tmpMat2d, lines[i][j][k].first, 255);
+                        removedLines[i][j].push_back(lines[i][j][k]);
+                        toRemove.push_back(k);
                         K--;
                         break;
                     }
                 }
+                for(int k = 0; k < toRemove.size(); k++) {
+                    lines[i][j].erase(lines[i][j].begin() + toRemove[k] - k);
+                }
             }
         }
 
+        for(int i = 0; i < h; i++) {
+            for(int j = 0; j < w; j++) {
+                tmpImage(i, j, 3) = 255;
+                tmpImage(i, j, 2) = 255*(tmpMat2d(i, j) > 0); // blue: line removed
+            }
+        }
+        tmpMat2d.setConstant(0);
+        for(int i = 0; i < grCnt; i++) {
+            for(int j = 0; j < gcCnt; j++) {
+                for(int k = 0; k < lines[i][j].size(); k++) {
+                    drawSegmentDirect(tmpMat2d, lines[i][j][k].first, 127);
+                }
+            }
+        }
+        for(int i = 0; i < h; i++) {
+            for(int j = 0; j < w; j++) {
+                tmpImage(i, j, 3) = 255;
+                tmpImage(i, j, 0) = 255*(tmpMat2d(i, j) > 0); //red: line exist
+            }
+        }
+        tmpMat2d.setConstant(0);
         // std::cout << "HI" << std::endl;
+        std::vector<std::vector<int>> addedLinesCnt(grCnt);
+        for(int i = 0; i < grCnt; i++) addedLinesCnt[i].resize(gcCnt);
+        for(int i = 0; i < grCnt; i++)
+            for(int j = 0; j < gcCnt; j++)
+                addedLinesCnt[i][j] = 0;
+
         for(int i = 0; i < grCnt; i++) {
             for(int j = 0; j < gcCnt; j++) {
                 Dot lu = std::make_pair(i*asciih, j*asciiw);
                 Dot rd = std::make_pair((i + 1)*asciih, (j + 1)*asciiw);
-                Segment ttmp = std::make_pair(paths.at(toChange.first).at(toChange.second - 1), paths.at(toChange.first).at(toChange.second));
-                Segment tmp = clip(ttmp, lu, rd);
-                if(tmp.first.first == -1) continue;
+                if(toChange.second != 0) {
+                    Segment ttmp = std::make_pair(paths[toChange.first][toChange.second - 1], paths[toChange.first][toChange.second]);
+                    Segment tmp = eg::tool::clip(ttmp, lu, rd);
+                    if(tmp.first.first != -1) {
+                        lines[i][j].push_back(std::make_pair(tmp, toChange));
+                        addedLinesCnt[i][j]++;
+                        needCalc.insert(std::make_pair(i, j));
+                        drawSegmentDirect(tmpMat2d, tmp, 255);
+                    }
+                }
 
-                lines.at(i).at(j).push_back(std::make_pair(tmp, toChange));
-                needCalc.insert(std::make_pair(i, j));
+                if(toChange.second != paths[toChange.first].size() - 1) {
+                    Segment ttmp = std::make_pair(paths[toChange.first][toChange.second], paths[toChange.first][toChange.second + 1]);
+                    Segment tmp = eg::tool::clip(ttmp, lu, rd);
+                    if(tmp.first.first != -1) {
+                        lines[i][j].push_back(std::make_pair(tmp, std::make_pair(toChange.first, toChange.second + 1)));
+                        addedLinesCnt[i][j]++;
+                        needCalc.insert(std::make_pair(i, j)); // needCalc is set.
+                        drawSegmentDirect(tmpMat2d, tmp, 255);
+                    }
+                }
             }
         }
+        for(int i = 0; i < h; i++) {
+            for(int j = 0; j < w; j++) {
+                tmpImage(i, j, 1) = 255*(tmpMat2d(i, j) > 0); // green: line drawed
+            }
+        }
+        if(toChange.second == 0) {
+            tmpMat2d.setConstant(0);
+            auto t = std::make_pair(paths[toChange.first][toChange.second], paths[toChange.first][toChange.second + 1]);
+            drawSegmentDirect(tmpMat2d, t, 255);
+            for(int i = 0; i < h; i++) {
+                for(int j = 0; j < w; j++) {
+                    if(tmpMat2d(i, j) < 1) continue;
+                    tmpImage(i, j, 0) = 135*(tmpMat2d(i, j) > 0);
+                    tmpImage(i, j, 1) = 206*(tmpMat2d(i, j) > 0);
+                    tmpImage(i, j, 2) = 235*(tmpMat2d(i, j) > 0);
+                }
+            }
+        }
+        else if(toChange.second == paths[toChange.first].size() - 1) {
+            tmpMat2d.setConstant(0);
+            auto t = std::make_pair(paths[toChange.first][toChange.second - 1], paths[toChange.first][toChange.second]);
+            drawSegmentDirect(tmpMat2d, t, 255);
+            for(int i = 0; i < h; i++) {
+                for(int j = 0; j < w; j++) {
+                    if(tmpMat2d(i, j) < 1) continue;
+                    tmpImage(i, j, 0) = 135*(tmpMat2d(i, j) > 0);
+                    tmpImage(i, j, 1) = 206*(tmpMat2d(i, j) > 0);
+                    tmpImage(i, j, 2) = 235*(tmpMat2d(i, j) > 0);
+                }
+            }
+        }
+        else {
+            tmpMat2d.setConstant(0);
+            auto t = std::make_pair(paths[toChange.first][toChange.second - 1], paths[toChange.first][toChange.second]);
+            drawSegmentDirect(tmpMat2d, t, 255);
+            for(int i = 0; i < h; i++) {
+                for(int j = 0; j < w; j++) {
+                    if(tmpMat2d(i, j) < 1) continue;
+                    tmpImage(i, j, 0) = 235*(tmpMat2d(i, j) > 0);
+                    tmpImage(i, j, 1) = 162*(tmpMat2d(i, j) > 0);
+                    tmpImage(i, j, 2) = 134*(tmpMat2d(i, j) > 0);
+                }
+            }
+            tmpMat2d.setConstant(0);
+            t = std::make_pair(paths[toChange.first][toChange.second], paths[toChange.first][toChange.second + 1]);
+            drawSegmentDirect(tmpMat2d, t, 255);
+            for(int i = 0; i < h; i++) {
+                for(int j = 0; j < w; j++) {
+                    if(tmpMat2d(i, j) < 1) continue;
+                    tmpImage(i, j, 0) = 133*(tmpMat2d(i, j) > 0);
+                    tmpImage(i, j, 1) = 234*(tmpMat2d(i, j) > 0);
+                    tmpImage(i, j, 2) = 162*(tmpMat2d(i, j) > 0);
+                }
+            }
+        }
+        for(int i = 0; i < paths.size(); i++) {
+            for(int j = 0; j < paths[i].size(); j++) {
+                int x = paths[i][j].first;
+                int y = paths[i][j].second;
+                for(int k = 0; k < 3; k++)
+                    tmpImage(x, y, k) = 255;
+            }
+        }
+        tmpImage(paths[toChange.first][toChange.second].first - dx, paths[toChange.first][toChange.second].second - dy, 0) = 255;
+        tmpImage(paths[toChange.first][toChange.second].first - dx, paths[toChange.first][toChange.second].second - dy, 1) = 110;
+        tmpImage(paths[toChange.first][toChange.second].first - dx, paths[toChange.first][toChange.second].second - dy, 2) = 40;
+        tmpImage(paths[toChange.first][toChange.second].first, paths[toChange.first][toChange.second].second, 0) = 110;
+        tmpImage(paths[toChange.first][toChange.second].first, paths[toChange.first][toChange.second].second, 1) = 110;
+        tmpImage(paths[toChange.first][toChange.second].first, paths[toChange.first][toChange.second].second, 2) = 183;
+
+        /*
+        red: line exists before and after removing lines.
+        green: line drawed recently.
+        blue: line removed and not redrawed.
+        yellow(r+g): line exists before & after, and drawed.
+        magenta(r+b): removed line and redraw.
+        cyan(g+b): ??? WHy this exists?
+        orange: pos of original vertex
+        purple: pos of moved vertex
+        skyblue: after line when 0 or size() - 1
+        dirt, green: after line
+        */
+
+        tmpPNG.setImage(tmpImage);
+        std::string oout = "main-sa-tmp-";
+        std::string ext = ".png";
+        tmpPNG.saveImage(oout + std::to_string(c) + ext);
+        std::cout << "TMP IMAGE generated" << std::endl;
 
         bool forceReset = false;
         std::vector<std::pair<std::pair<int, int>, double>> prevErr;
@@ -528,40 +569,40 @@ int main(int argc, char * argv[]) {
                 Dot afterFirst = getChanged(before.first, originalLines[i][j][k].second, original, paths);
                 Dot afterSecond = getChanged(before.second, originalLines[i][j][k].second, original, paths);
                 Segment after = std::make_pair(afterFirst, afterSecond);
-                // std::cout << "2" << std::endl;
-                double tttt = eg::math::calcDeform(before, after, segs, originalSegs);
-                if(tttt == 987) {
+                // std::cout << "2" << std::endl
+                double tttt;
+                try{
+                    tttt = eg::math::calcDeform(before, after, segs, originalSegs);
+                }
+                catch (const eg::exceptions::InvalidParameter &) {
                     forceReset = true;
                     break;
                 }
                 deform += l*tttt;
                 // std::cout << "3" << std::endl;
-                Segment tmp = lines[i][j][k].first;
-                tmp.first.first -= i*asciih;
-                tmp.first.second -= j*asciiw;
-                tmp.second.first -= i*asciih;
-                tmp.second.second -= j*asciiw;
-                drawSegmentDirect(sample, tmp, 255); // setting val as 255 will increase misaligned err.
             }
             if(forceReset) break;
+
+            for(int k = 0; k < lines[i][j].size(); k++)
+                drawSegmentDirect(sample, lines[i][j][k].first, 1);
+
             prevErr.push_back(std::make_pair(std::make_pair(i, j), errCell(i, j)));
             // std::cout << "sum" << std::endl;
             Eigen::Tensor<double, 0> oneCnt = sample.sum();
-            if(oneCnt(0) < 2) {
+            if(oneCnt(0) < 4) {
                 buffer[i][j] = ' ';
                 errCell(i, j) = 0;
                 continue;
             }
             // std::cout << "calc distance" << std::endl;
             K++;
-            /*
             std::thread ts[THREAD_CNT];
             for(int k = 0; k < THREAD_CNT; k++) {
                 ts[k] = std::thread(fillDist, std::ref(distances), fCnt*((double)k/THREAD_CNT), fCnt*((double)(k+1)/THREAD_CNT),
                                     std::ref(sample), std::ref(asciiPNGs));
                 ts[k].join();
-            }*/
-            fillDist(distances, 0, fCnt, sample, asciiPNGs);
+            }
+            // fillDist(distances, 0, fCnt, sample, asciiPNGs);
             double minVal = INF;
             int minIndex = -1;
             for(int k = 0; k < fCnt; k++) {
@@ -588,7 +629,8 @@ int main(int argc, char * argv[]) {
         }
 
         if(lastMinE > E) {
-            E = lastMinE;
+            // E = lastMinE;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+            lastMinE = E;
             co = 0;
             for(int i = 0; i < grCnt; i++) {
                 for(int j = 0; j < gcCnt; j++) {
@@ -599,6 +641,7 @@ int main(int argc, char * argv[]) {
             }
             std::cout << std::endl;
             std::cout << "^^^====E: " << E << " c: " << c << " co: " << co << std::endl;
+            std::cout << "best" << std::endl;
         }
         else {
             double Pr, ran;
@@ -619,6 +662,22 @@ int main(int argc, char * argv[]) {
                 // std::cout << "Pr " << Pr << " RAN " << ran << std::endl;
             }
             if(forceReset || (Pr >= ran)) { // goto previous state.
+                //todo: update lines.... I didn't do it!!!!!!!!!!!!!!!!
+                std::cout << "goto prev" << std::endl;
+                for(int i = 0; i < grCnt; i++) {
+                    for(int j = 0; j < gcCnt; j++) {
+                        for(int k = 0; k < addedLinesCnt[i][j]; k++) {
+                            lines[i][j].pop_back();
+                        }
+                    }
+                }
+                for(int i = 0; i < grCnt; i++) {
+                    for(int j = 0; j < gcCnt; j++) {
+                        for(int k = 0; k < removedLines[i][j].size(); k++) {
+                            lines[i][j].push_back(removedLines[i][j][k]);
+                        }
+                    }
+                }
                 for(const auto & p : prevErr) {
                     int i = p.first.first;
                     int j = p.first.second;
@@ -631,8 +690,8 @@ int main(int argc, char * argv[]) {
                     segs[ssss + toChange.second].first.second -= dy;
                 }
                 else if(toChange.second == paths[toChange.first].size() - 1) {
-                    segs[ssss + toChange.second].second.first -= dx;
-                    segs[ssss + toChange.second].second.second -= dy;
+                    segs[ssss + toChange.second - 1].second.first -= dx;
+                    segs[ssss + toChange.second - 1].second.second -= dy;
                 }
                 else {
                     segs[ssss + toChange.second - 1].second.first -= dx;

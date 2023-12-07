@@ -443,7 +443,7 @@ Mat2d eg::imgproc::logpolarForMat2d(const Mat2d & a, const Dot & p) {
     const int tbinCnt = 12;
     const int rbinCnt = 5;
     const double tbinSize = 2*M_PI/tbinCnt;
-    const double rbinSize = std::log((double)(16/2)/rbinCnt);
+    const double rbinSize = std::log((double)(16/2))/rbinCnt;
 
     Mat2d histo(tbinCnt, rbinCnt);
     histo.setConstant(0);
@@ -451,11 +451,11 @@ Mat2d eg::imgproc::logpolarForMat2d(const Mat2d & a, const Dot & p) {
     for(int i = 0; i < h; i++) {
         for(int j = 0; j < w; j++) {
             const double rho = eg::geo::logEuclideDist(std::make_pair(i, j), p);
-            if(i == p.first) continue;
             const double theta = std::atan2(j - p.second, i - p.first) + M_PI;
             int ri, ti;
             if(rho > rbinSize*rbinCnt)
-                ri = rbinCnt - 1;
+                continue;
+                // ri = rbinCnt - 1;
             else {
                 for(int k = 1; k <= rbinCnt; k++) {
                     if(rho <= k*rbinSize) {
@@ -465,7 +465,7 @@ Mat2d eg::imgproc::logpolarForMat2d(const Mat2d & a, const Dot & p) {
                 }
             }
             if(theta > tbinSize*tbinCnt)
-                ti = tbinCnt - 1;
+                ti = 0;
             else {
                 for(int k = 1; k <= tbinCnt; k++) {
                     if(theta <= k*tbinSize) {
@@ -484,17 +484,17 @@ Mat2d eg::imgproc::logpolar(const Dots & dots, const Dot & p) {
     const int tbinCnt = 12; // value in the paper structure-based ascii art
     const int rbinCnt = 5; // value in the paper structure-based ascii art
     const double tbinSize = 2*M_PI/tbinCnt;
-    const double rbinSize = std::log((double)(16/2)/rbinCnt); // value in the paper structure-based ascii art
+    const double rbinSize = std::log((double)(16/2))/rbinCnt; // value in the paper structure-based ascii art
 
     Mat2d histo(tbinCnt, rbinCnt);
     histo.setConstant(0);
     for(int i = 0; i < dots.size(); i++) {
         double rho = eg::geo::logEuclideDist(dots[i], p);
-        if(dots[i].first == p.first) continue;
         double theta = std::atan2(dots[i].second - p.second, dots[i].first - p.first) + M_PI;
         int ri, ti;
         if(rho > rbinSize*rbinCnt)
-            ri = rbinCnt - 1;
+            continue;
+            // ri = rbinCnt - 1;
         else {
             for(int j = 1; j <= rbinCnt; j++) {
                 if(rho <= j*rbinSize) {
@@ -505,7 +505,7 @@ Mat2d eg::imgproc::logpolar(const Dots & dots, const Dot & p) {
         }
 
         if(theta > tbinSize*tbinCnt)
-            ti = tbinCnt - 1;
+            ti = 0;
         else {
             for(int j = 1; j <= tbinCnt; j++) {
                 if(theta <= j*tbinSize) {
@@ -540,14 +540,16 @@ Mat2d eg::imgproc::grassfire(const Mat2d & a, const Mat2d & mask) {
     for(int i = 0; i < h; i++) {
         for(int j = 0; j < w; j++) {
             if(mask(i, j) && a(i, j) > 0)
-                ans(i, j) = 1 + std::min(ans(i - 1, j), ans(i, j - 1)); // use taxi distance
+                if(i > 0 && j > 0)
+                    ans(i, j) = 1 + std::min(ans(i - 1, j), ans(i, j - 1)); // use taxi distance
         }
     }
     for(int i = h - 1; i >= 0; i--) {
         for(int j = w - 1; j >= 0; j--) {
             if(mask(i, j) && a(i, j) > 0)
-                ans(i, j) = std::min(ans(i, j),
-                        1 + std::min(ans(i + 1, j), ans(i, j + 1)));
+                if(i < h - 1 && j < w - 1)
+                    ans(i, j) = std::min(ans(i, j),
+                                        1 + std::min(ans(i + 1, j), ans(i, j + 1)));
         }
     }
 

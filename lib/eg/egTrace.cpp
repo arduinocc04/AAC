@@ -56,7 +56,9 @@ Path eg::trace::approxPath(const Path & a) {
             }
         }
         if(!flag) {
-            ans.push_back(a[startIdx]);
+            tmp.second = a[i - 1];
+            if(eg::geo::euclideDist(tmp.first, tmp.second) >= THRESHOLD)
+                ans.push_back(a[startIdx]);
             startIdx = i;
         }
     }
