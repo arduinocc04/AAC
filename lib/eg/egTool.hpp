@@ -13,4 +13,5 @@ using namespace eg;
 
 namespace eg::tool {
 Dots merge(const Paths & a);
+Segment clip(const Segment & s, const Dot & lu, const Dot & rd);
 }
