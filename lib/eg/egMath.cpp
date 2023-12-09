@@ -313,27 +313,27 @@ double eg::math::calcAccess(const Segment & before, const Segment & after, const
         }
         Segment beforeTmp = std::make_pair(mid, mostCloseToMid);
         Segment afterTmp = std::make_pair(midAfter, mostCloseToMidAfter);
-        /*
-        std::cout << "ACCESS j " << j << " i " << i << std::endl;
-		std::cout << "W " << w << std::endl;
-		std::cout << "beforetmp " << beforeTmp.first.first << "/" << beforeTmp.first.second << " " << beforeTmp.second.first << "/" << beforeTmp.second.second << std::endl;
-		std::cout << "aftertmp " << afterTmp.first.first << "/" << afterTmp.first.second << " " << afterTmp.second.first << "/" << afterTmp.second.second << std::endl;
-        */
+        
+        // std::cout << "ACCESS j " << j << " i " << i << std::endl;
+		// std::cout << "W " << w << std::endl;
+		// std::cout << "beforetmp " << beforeTmp.first.first << "/" << beforeTmp.first.second << " " << beforeTmp.second.first << "/" << beforeTmp.second.second << std::endl;
+		// std::cout << "aftertmp " << afterTmp.first.first << "/" << afterTmp.first.second << " " << afterTmp.second.first << "/" << afterTmp.second.second << std::endl;
+        
         double t = w*calcDeformLocal(beforeTmp, afterTmp);
 		// std::cout << "t " << t << std::endl;
         res += t;
     }
-    if(res != res) return 987;
+    if(res != res) throw eg::exceptions::InvalidParameter();
     return res;
 }
 
 double eg::math::calcDeform(const Segment & before, const Segment & after, const Segments & ss, const Segments & original) {
-    if(eg::geo::euclideDist(after.first, after.second) < 1e-8) return  987;
-    if(eg::geo::euclideDist(before.first, before.second) < 1e-8) return  987;
+    if(eg::geo::euclideDist(after.first, after.second) < 1e-8) throw eg::exceptions::InvalidParameter();
+    if(eg::geo::euclideDist(before.first, before.second) < 1e-8) throw eg::exceptions::InvalidParameter();
     double t = calcDeformLocal(before, after);
     double tt = calcAccess(before, after, ss, original);
     // std::cout << "LO " << t << " ACC " << tt << std::endl;
     double c = std::max(t, tt);
-    if(c != c) return 987;
+    if(c != c) throw eg::exceptions::InvalidParameter();
     return c;
 }

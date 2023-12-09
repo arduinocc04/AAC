@@ -71,7 +71,8 @@ std::string getAsciiFromPath(std::string path) {
 
 int main(int argc, char * argv[]) {
     if(argc != 5 && argc != 4) {
-        std::cout << "Use Program Properly! program ASCII_IMAGES_PATH INPUT_IMAGE_PATH" << std::endl;
+        std::cout << "Use Program Properly!\nprogram ASCII_IMAGES_PATH INPUT_IMAGE_PATH SCALE_RATIO or" << std::endl;
+        std::cout << "program ASCII_IMAGES_PATH INPUT_IMAGE_PATH HEIGHT WIDTH" << std::endl;
         return -1;
     }
     std::string asciiImagesPath = argv[1];

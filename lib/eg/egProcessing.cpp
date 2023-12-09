@@ -186,13 +186,10 @@ std::pair<Paths, std::vector<int>> getContourSuzuki(const Mat2d & bin) {
     int nbd = 1;
     int lnbd;
     int dir;
-    int dx8ccw[] = {-1, -1, 0, 1, 1, 1, 0, -1};
-    int dy8ccw[] = {0, -1, -1, -1, 0, 1, 1, 1};
-    int dx8cw[] = {-1, -1, 0, 1, 1, 1, 0, -1};
-    int dy8cw[] = {0, 1, 1, 1, 0, -1, -1, -1};
-    std::vector<Path> borders;
-    borders.push_back({});
-    borders.push_back({});
+    const int dx8ccw[] = {-1, -1, 0, 1, 1, 1, 0, -1};
+    const int dy8ccw[] = {0, -1, -1, -1, 0, 1, 1, 1};
+    const int dx8cw[] = {-1, -1, 0, 1, 1, 1, 0, -1};
+    const int dy8cw[] = {0, 1, 1, 1, 0, -1, -1, -1};
 
     std::vector<int> p;
     p.push_back(1);
@@ -295,89 +292,7 @@ std::pair<Paths, std::vector<int>> getContourSuzuki(const Mat2d & bin) {
             if(ans(i, j) != 1) lnbd = abs(ans(i, j));
         } // for j
     } // for i
-    std::vector<bool> calced(nbd);
-    std::vector<std::vector<bool>> used(h);
-    for(int i = 0; i < h; i++)
-        used[i].resize(w);
-    calced[0] = calced[1] = true;
-    for(int i = 0; i < h; i++) {
-        for(int j = 0; j < w; j++) {
-            int cnbd = abs(ans(i, j));
-            if(!calced[cnbd]) {
-                for(int k = 0; k < h; k++)
-                    for(int l = 0; l < w; l++)
-                        used[k][l] = false;
-                std::queue<Dot> q;
-
-                used[i][j] = true;
-                calced[cnbd] = true;
-                int last;
-                Path res;
-                res.push_back(std::make_pair(i, j));
-                for(int k = 3; k < 7; k++) { // go below or right
-                    int tx = i + dx8ccw[k];
-                    int ty = j + dy8ccw[k];
-                    if(tx < 0 || tx >= h || ty < 0 || ty >= w)
-                        continue;
-                    if(abs(ans(tx, ty)) == cnbd) {
-                        q.push(std::make_pair(tx, ty));
-                        last = k;
-                        break;
-                    }
-                }
-                while(q.size()) {
-                    Dot tmp = q.front();
-                    res.push_back(tmp);
-                    q.pop();
-                    for(int k = 0; k < 8; k++) {
-                        int tx = tmp.first + dx8ccw[k];
-                        int ty = tmp.second + dy8ccw[k];
-                        if(tx < 0 || tx >= h || ty < 0 || ty >= w || used[tx][ty])
-                            continue;
-                        if(abs(ans(tx, ty)) == cnbd) {
-                            q.push(std::make_pair(tx, ty));
-                            used[tx][ty] = true;
-                            break;
-                        }
-                    }
-                }
-                while(q.size()) q.pop();
-                bool flag = false;
-                for(int k = last + 1; k < 7; k++) {
-                    int tx = i + dx8ccw[k];
-                    int ty = j + dy8ccw[k];
-                    if(tx < 0 || tx >= h || ty < 0 || ty >= w)
-                        continue;
-                    if(abs(ans(tx, ty)) == cnbd && !used[tx][ty]) {
-                        flag = true;
-                        q.push(std::make_pair(tx, ty));
-                        used[tx][ty] = true;
-                        break;
-                    }
-                }
-                if(flag) { // this will change order to clock wise.
-                    std::reverse(res.begin(), res.end());
-                    while(q.size()) {
-                        Dot tmp = q.front();
-                        res.push_back(tmp);
-                        q.pop();
-                        for(int k = 0; k < 8; k++) {
-                            int tx = tmp.first + dx8ccw[k];
-                            int ty = tmp.second + dy8ccw[k];
-                            if(tx < 0 || tx >= h || ty < 0 || ty >= w || used[tx][ty])
-                                continue;
-                            if(abs(ans(tx, ty)) == cnbd) {
-                                q.push(std::make_pair(tx, ty));
-                                used[tx][ty] = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                borders.push_back(res);
-            }
-        }
-    }
+    Paths borders = eg::tool::Mat2dToBorders(ans, nbd, h, w);
     return std::make_pair(borders, p);
 }
 
