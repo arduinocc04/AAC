@@ -23,6 +23,8 @@
 \beamertemplatefootempty
 \beamertemplatenavigationsymbolsempty
 
+\nocite{*}
+
 \newcommand{\spacing}{\hspace{0.3em}}
 \newcommand{\eg}{\textbf{eg}}
 \newcommand{\imgascii}{\textbf{img2ascii}}
@@ -60,7 +62,7 @@
 	\frametitle{왜 만들었는가?}
 	\begin{itemize}
 		\item AAC(악)이라는 이름이 너무 찰져서
-		\item YouTube에서 donut.c라는 아스키 아트를 봤는데 멋있어서\footnote{\href{https://www.youtube.com/watch?v=DEqXNfs\_HhY}{\footnotesize{https://www.youtube.com/watch?v=DEqXNfs\_HhY}}}
+		\item YouTube에서 donut.c라는 아스키 아트를 봤는데 멋있어서\cite{donut}
 	\end{itemize}
 	\begin{figure}
 		\centering
@@ -234,7 +236,7 @@
 	\begin{frame}{}
 		\frametitle{외곽선의 선분 근사}
 		\begin{enumerate}
-			\item Suzuki 알고리즘을 이용하여 외곽선을 추출
+			\item Suzuki 알고리즘을 이용하여 외곽선을 추출\cite{suzuki}
 			\item 자체 제작한 CW 정렬 알고리즘을 이용하여 외곽선을 선분으로 분할
 		\end{enumerate}	
 	\end{frame}
@@ -260,8 +262,8 @@
 	\begin{frame}{}
 		\frametitle{아스키 문자로 최적화}
 		\begin{enumerate}
-			\item Cohen-Sutherland 알고리즘을 사용하여 길이가 긴 선분을 일정한 간격의 그리드로 분할
-			\item Simulated annealing(담금질 기법): 임의의 정점을 조금씩 움직이면서 Bresenham's line algorithm을 사용해 그림을 새로 그림
+			\item Cohen-Sutherland 알고리즘을 사용하여 길이가 긴 선분을 일정한 간격의 그리드로 분할\cite{cohen-sutherland}
+			\item Simulated annealing(담금질 기법): 임의의 정점을 조금씩 움직이면서 Bresenham's line algorithm을 사용해 그림을 새로 그림\cite{bresenham-line}
 			\item 새로 그린 이미지가 아스키 아트로 더 잘 표현되는 결과물로 변화하였는지 확인
 		\end{enumerate}	
 	\end{frame}
@@ -269,8 +271,8 @@
 		\frametitle{아스키 문자로 최적화}
 		\begin{enumerate}
 			\setcounter{enumi}{3}
-			\item 주어진 그리드에 어떤 문자가 가장 잘 대응되는지 판단하기 위하여 좌표계를 log-polar coordinate로 변환한 후 히스토그램을 만듦
-			\item 히스토그램 간의 Bhattacharyya 거리를 비교하여 최적의 아스키 문자를 판단
+			\item 주어진 그리드에 어떤 문자가 가장 잘 대응되는지 판단하기 위하여 좌표계를 log-polar coordinate로 변환한 후 히스토그램을 만듦\cite{log-polar}
+			\item 히스토그램 간의 Bhattacharyya 거리를 비교하여 최적의 아스키 문자를 판단\cite{bhattacharyya}
 		\end{enumerate}
 		\vspace{1em}
 		Bhattacharyya 거리: \\
@@ -293,17 +295,11 @@
 	\end{frame}
 	\begin{frame}{}
 		\frametitle{참고 자료}
-		\begin{enumerate}
-			\item 자료 1
-			\item 자료 2
-			\item 자료 3
-		\end{enumerate}
-		(인용 양식 지켜서 쓰면 교수님 호감 $ \rightarrow $ 대학원생으로 바로 납치)
+		\bibliographystyle{IEEEtran}
+		\tiny{\bibliography{References}}
 	\end{frame}
-
 	\begin{frame}
 		\centering
 		감사합니다.
 	\end{frame}
-
 \end{document}
