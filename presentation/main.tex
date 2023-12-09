@@ -156,7 +156,7 @@
 		\begin{enumerate}
 			\item 이미지 저장
 			\item 회색조 변환
-			\item Binary 변환
+			\item 이미지 전처리
 			\item 외곽선의 선분 근사
 			\item 아스키 문자로 최적화
 		\end{enumerate}
@@ -189,7 +189,10 @@
 		$ \displaystyle \frac{red + green + blue}{3} = brightness $
 	\end{frame}
 	\begin{frame}{}
-		\frametitle{Binary 변환}
+		\frametitle{이미지 전처리}
+		회색조 이미지의 외곽선을 추출하기 위해 전처리 진행 \\
+		밝기를 기준으로 픽셀을 0과 1로 구분
+		\line(1,0){1000}
 		\begin{enumerate}
 			\item Gaussian-blur $ \rightarrow $ Binary
 			\begin{itemize}
@@ -205,7 +208,7 @@
 		\end{figure}
 	\end{frame}
 	\begin{frame}{}
-		\frametitle{Binary 변환}
+		\frametitle{이미지 전처리}
 		\begin{itemize}
 			\item Convolution 연산
 		\end{itemize}
@@ -214,7 +217,7 @@
 		$ \displaystyle a_{22} = \sum_{i = 1}^{3} \sum_{j = 1}^{3} a_{ij} * k_{ij} $
 	\end{frame}
 	\begin{frame}{}
-		\frametitle{Binary 변환}
+		\frametitle{이미지 전처리}
 		\begin{enumerate}
 			\setcounter{enumi}{1}
 			\item Binary $ \rightarrow $ Morphology
