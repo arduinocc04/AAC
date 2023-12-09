@@ -12,6 +12,7 @@
 \usepackage{float}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
 \begin{document}
 
 \newcommand{\libpng}{\textbf{libpng}}
@@ -67,7 +68,7 @@ structure-based 방식은 이미지를 회색조로 변환한 뒤 convolution �
 
 \section{동기}
 \begin{description}
-    \item[박준영]: YouTube에서 접했던 donut.c\cite{b1} 아스키 아트를 보고 비슷하게 이미지 변환을 구현해 보고자 시작하였다.
+    \item[박준영]: YouTube에서 접했던 donut.c 아스키 아트를 보고 비슷하게 이미지 변환을 구현해 보고자 시작하였다.\cite{donut}
     \item[조다니엘]\hspace{1em}: AAC(악)이라는 프로그램의 이름이 마음에 들었다.
 \end{description}
 
@@ -102,7 +103,7 @@ structure-based 방식은 이미지를 회색조로 변환한 뒤 convolution �
 색조 이미지를 회색조로 변환하는 cvtGray(),
 외곽선을 추출하는 getEdge(),
 blur 처리를 담당하는 blur(),
-grassfire 알고리즘을 활용하여 중심선을 추출하는 extractCenterline(),
+grassfire 알고리즘\cite{grassfire}을 활용하여 중심선을 추출하는 extractCenterline(),
 0과 255 사이를 벗어나는 밝기 값을 범위 안으로 축소하는 saturate(),
 일정 역치를 벗어나는 이미지의 명도 픽셀 값을 표시하는 markOutlier(),
 binary 이미지의 0과 1값을 반전시키는 reverse(),
@@ -170,10 +171,10 @@ Gaussian-blur 또는 dilate, erode 연산을 이용하여 이미지의 노이즈
 일정 역치를 설정하여 역치를 넘기지 못하는 밝기의 픽셀은 0, 넘기는 밝기의 픽셀은 1로 저장한다.
 
 \subsubsection{2차 외곽선 추출}
-Suzuki의 알고리즘\cite{suzuki}을 이용하여 외곽선을 추출한다.
+Suzuki 알고리즘을 이용하여 외곽선을 추출한다.\cite{suzuki}
 
 \subsubsection{외곽선의 선분 분할}
-suzuki의 알고리즘을 이용하면 이차원 행렬의 각 점이 어떤 외곽선에 속해있는지 알아낼 수 있다.
+Suzuki 알고리즘을 이용하면 이차원 행렬의 각 점이 어떤 외곽선에 속해있는지 알아낼 수 있다.
 이를 바탕으로 같은 외곽선에 있는 점을 시계방향 또는 반시계방향으로 정렬하여 외곽선을 선분으로 분할하여 이미지를 벡터화한다.
 위의 사항을 구현하기 위하여 자체 제작한 알고리즘이 사용되었다. 
 \begin{enumerate}
@@ -213,7 +214,8 @@ Cohen-Sutherland 알고리즘\cite{cohen-sutherland}을 사용하여 길이가 �
 \subsubsection{Simulated Annealing}
 임의의 정점을 조금씩 움직이면서 Bresenham's line algorithm\cite{bresenham-line}을 사용해 그림을 새로 그렸다.
 이후 이미지가 아스키 아트를 더 잘 표현하는 결과물로 변화하였는지 확인한다.
-주어진 그리드에 어떤 문자가 가장 잘 대응되는지 판단하기 위하여 좌표계를 log-polar coordinate로 변환한 후 히스토그램을 만들어 Bhattacharyya 거리를 비교하여 판단하였다.\cite{st-ba-ascii-art}
+주어진 그리드에 어떤 아스키 문자가 최적으로 대응되는지 판단하기 위하여 좌표계를 log-polar coordinate로 변환하여 각 정점별 히스토그램을 얻었다.\cite{log-polar}
+마지막으로 만들어진 히스토그램 간의 Bhattacharyya 거리를 비교하여 아스키 문자를 선택하였다.\cite{st-ba-ascii-art}\cite{bhattacharyya}
 
 
 \section{프로젝트 진행 과정}
@@ -241,14 +243,7 @@ Cohen-Sutherland 알고리즘\cite{cohen-sutherland}을 사용하여 길이가 �
 \item \begin{verbatim}img2ascii/structure/sa-structure non-hangul-images IMAGE_FILE\end{verbatim}
 \end{enumerate}
 
-\begin{thebibliography}{00}
-\bibitem{b1} % donut.c
-\bibitem{suzuki} % https://www.sciencedirect.com/science/article/abs/pii/0734189X85900167
-\bibitem{monotone-chain} % https://en.wikibooks.org/wiki/Algorithm_Implementation/Geometry/Convex_hull/Monotone_chain
-\bibitem{grassfire} % https://en.wikipedia.org/wiki/Grassfire_transform
-\bibitem{cohen-sutherland} % https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
-\bibitem{st-ba-ascii-art} % https://dl.acm.org/doi/10.1145/1778765.1778789
-\bibitem{bresenham-line} % https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
-\end{thebibliography}
+\bibliographystyle{IEEEtran}
+\bibliography{References}
 
 \end{document}
