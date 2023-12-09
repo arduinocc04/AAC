@@ -260,7 +260,7 @@ Cohen-Sutherland 알고리즘\cite{cohen-sutherland}을 사용하여 길이가 �
 
 \subsubsection{아스키 문자 선택}
 
-Simulated Annealing으로 얻은 이미지에 Gaussian-blur를 다시 적용하였다.
+위 과정으로 얻은 이미지에 Gaussian-blur를 다시 적용하였다.
 다음으로 주어진 그리드에 어떤 아스키 문자가 최적으로 대응되는지 판단하기 위하여 좌표계를 log-polar coordinate로 변환하고 각 정점별 히스토그램을 얻었다.\cite{log-polar}
 마지막으로 히스토그램 간의 Bhattacharyya 거리를 비교하여 그리드에 대응되는 아스키 문자를 선택하였다.\cite{st-ba-ascii-art}\cite{bhattacharyya}
 
