@@ -27,5 +27,6 @@ We didn't use image processing library such as OpenCV because using libpng was m
 ## Attention
 structure-based ascii art with simulated annealing optimization(`main-sa.cpp`) has some debug features. To disable that features, undefine `DEBUG-*`.
 ## Example
-`cd build && img2ascii/structure/structure non-hangul-images INPUT.png`  
+- `cd build && img2ascii/structure/structure non-hangul-images INPUT.png 1`
+- `cd build && img2ascii/structure/sa-structure non-hangul-images INPUT.png`  
 If you used `install.sh`, `non-hangul-images` will be inside your build directory.
