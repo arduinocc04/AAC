@@ -24,6 +24,8 @@
 
 #define DEBUG_WITH_TMP_IMAGE
 #define DEBUG_WITH_DECOM_IMAGE
+#define DEBUG_WITH_NODECOM_IMAGE
+#define DEBUG_DRAW_GRID
 
 using namespace eg::imgproc;
 namespace fs = std::filesystem;
@@ -109,17 +111,21 @@ std::pair<int, int> getChanged(const std::pair<int, int> & coord, const std::pai
 }
 
 void updateLine(const std::pair<int, int> & toChange, int dx, int dy, Segments & segs, Paths & paths) {
-    if(toChange.second == 0 && paths[toChange.first][0] == paths[toChange.first][paths[toChange.first].size() - 1]) {
+    if(toChange.second == 0) {
         paths.at(toChange.first).at(0).first += dx;
         paths.at(toChange.first).at(0).second += dy;
-        paths[toChange.first][paths[toChange.first].size() - 1].first += dx;
-        paths[toChange.first][paths[toChange.first].size() - 1].second += dy;
+        if(paths[toChange.first][0] == paths[toChange.first][paths[toChange.first].size() - 1]) {
+            paths[toChange.first][paths[toChange.first].size() - 1].first += dx;
+            paths[toChange.first][paths[toChange.first].size() - 1].second += dy;
+        }
     }
-    else if(toChange.second == paths[toChange.first].size() - 1 && paths[toChange.first][0] == paths[toChange.first][paths[toChange.first].size() - 1]) {
-        paths[toChange.first][0].first += dx;
-        paths[toChange.first][0].second += dy;
+    else if(toChange.second == paths[toChange.first].size() - 1) {
         paths[toChange.first][paths[toChange.first].size() - 1].first += dx;
         paths[toChange.first][paths[toChange.first].size() - 1].second += dy;
+        if(paths[toChange.first][0] == paths[toChange.first][paths[toChange.first].size() - 1]) {
+            paths[toChange.first][0].first += dx;
+            paths[toChange.first][0].second += dy;
+        }
     }
     else {
         paths.at(toChange.first).at(toChange.second).first += dx;
@@ -236,7 +242,7 @@ std::pair<double, int> calcAISS(int i, int j, const std::vector<SegWithOri> & li
     }
 
     Eigen::Tensor<double, 0> tmp = sample.sum();
-    if(tmp(0) < 4) {
+    if(tmp(0) < 1) {
         return std::pair(-1, -1);
     }
 
@@ -294,7 +300,7 @@ int main(int argc, char * argv[]) {
     std::cout << "Getting Edge of input image" << std::endl;
     t = getEdge(t, eg::edgeDetectMethod::gradient);
 
-    t = markOutlier(t, 10);
+    t = markOutlier(t, 50);
     print(t);
     t = dilate(t, 1, 3);
     t = erode(t, 1, 3);
@@ -358,6 +364,19 @@ int main(int argc, char * argv[]) {
 
     ArrayMat<SegWithOri> originalLinesPerGrid = linesPerGrid;
     std::cout << "Decompose finished" << std::endl;
+
+#ifdef DEBUG_WITH_NODECOM_IMAGE
+    Mat2d noDecomTestMat(inputImage.info.height, inputImage.info.width);
+    noDecomTestMat.setConstant(0);
+    for(int i = 0; i < segs.size(); i++) {
+        drawSegmentDirect(noDecomTestMat, segs[i], 255);
+    }
+    Image noDecomImage = mat2dToImage(noDecomTestMat);
+    PNG noDecom;
+    noDecom.openImage(inputImage.getInputPath());
+    noDecom.setImage(noDecomImage);
+    noDecom.saveImage("noDecomed-approx.png");
+#endif
 
 #ifdef DEBUG_WITH_DECOM_IMAGE
     Mat2d decomTestMat(inputImage.info.height, inputImage.info.width);
@@ -435,10 +454,14 @@ int main(int argc, char * argv[]) {
     std::uniform_int_distribution<int> distribution(0, INF);
     auto mt = std::bind(distribution, engine);
 
+    const int h = inputImage.info.height;
+    const int w = inputImage.info.width;
+
 #ifdef DEBUG_WITH_TMP_IMAGE
     PNG tmpPNG;
     tmpPNG.openImage(inputImagePath);
     Mat2d tmpMat2d(asciih*grCnt, asciiw*gcCnt);
+    Image tmpImage(h, w, 4);
 #endif
 
     bool possible = false;
@@ -448,10 +471,46 @@ int main(int argc, char * argv[]) {
             break;
         }
     }
-
-    const int h = inputImage.info.height;
-    const int w = inputImage.info.width;
-    Image tmpImage(h, w, 4);
+    
+    ArrayMat<std::vector<int>> candidates(grCnt);
+    for(int i = 0; i < grCnt; i++) candidates[i].resize(gcCnt);
+    for(int i = 0; i < grCnt; i++)
+        for(int j = 0; j < gcCnt; j++)
+            candidates[i][j].resize(linesPerGrid[i][j].size());
+    bool * usedBool = new bool[originalSegs.size()];
+    for(int k = 0; k < grCnt; k++) {
+        for(int l = 0; l < gcCnt; l++) {
+            for(int m = 0; m < linesPerGrid[k][l].size(); m++) {
+                const Dot mid = std::make_pair((linesPerGrid[k][l][m].first.first.first + linesPerGrid[k][l][m].first.second.first)/2, (linesPerGrid[k][l][m].first.first.second + linesPerGrid[k][l][m].first.second.second)/2);
+                for(int i = 0; i < originalSegs.size(); i++) usedBool[i] = false;
+                for(double theta = 0; theta < 2*M_PI; theta += 0.01) {
+                    double minVal = 987654321;
+                    int minIndex = -1;
+                    const Vec2 direc = std::make_pair(18000*std::cos(theta), 18000*std::sin(theta));
+                    const Segment ray = std::make_pair(mid, mid + direc);
+                    for(int i = 0; i < originalSegs.size(); i++) {
+                        const auto & tmp = originalSegs[i];
+                        if(ray.first.first < std::min(tmp.first.first, tmp.second.first) && ray.second.first < std::min(tmp.first.first, tmp.second.first)) continue;
+                        if(ray.first.first > std::max(tmp.first.first, tmp.second.first) && ray.second.first > std::max(tmp.first.first, tmp.second.first)) continue;
+                        if(eg::geo::ccw(ray.first, ray.second, tmp.first)*eg::geo::ccw(ray.first, ray.second, tmp.second) <= 0 &&
+                        eg::geo::ccw(tmp.first, tmp.second, ray.first)*eg::geo::ccw(tmp.first, tmp.second, ray.second) <= 0) {
+                            double dist = eg::geo::distSegDot(tmp, mid);
+                            if(dist < 1) continue;
+                            if(minVal > dist) {
+                                minVal = dist;
+                                minIndex = i;
+                            }
+                        }
+                    }
+                    if(minIndex != -1 && !usedBool[minIndex]) {
+                        candidates[k][l][m].push_back(minIndex);
+                        usedBool[minIndex] = true;
+                    }
+                }
+            }
+        }
+    }
+    delete[] usedBool;
 
     while(possible) {
         const auto tmp = chooseRandomValue(paths, mt, asciih, asciiw, h, w);
@@ -463,6 +522,7 @@ int main(int argc, char * argv[]) {
 
 #ifdef DEBUG_WITH_TMP_IMAGE
         tmpMat2d.setConstant(0);
+        tmpImage.setConstant(0);
 #endif
 
         ArrayMat<SegWithOri> removedLines(grCnt);
@@ -493,12 +553,38 @@ int main(int argc, char * argv[]) {
                 }
             }
         }
-
+#ifdef DEBUG_DRAW_GRID
+        for(int i = 0; i < grCnt; i++) {
+            if((i + 1)*asciih > h) break;
+            for(int j = 0; j < w; j++) {
+                for(int k = 0; k < 3; k++)
+                    tmpImage((i + 1)*asciih, j, k) = 127;
+            }
+        }
+        for(int i = 0; i < gcCnt; i++) {
+            if((i + 1)*asciiw > w) break;
+            for(int j = 0; j < h; j++) {
+                for(int k = 0; k < 3; k++)
+                    tmpImage(j, (i + 1)*asciiw, k) = 127;
+            }
+        }
+#endif
 #ifdef DEBUG_WITH_TMP_IMAGE
+        for(const auto & p: needCalc) {
+            int i = p.first, j = p.second;
+            for(int k = 0; k < asciih; k++) {
+                if(k + i*asciih < h) tmpImage(i*asciih + k, j*asciiw, 0) = 255;
+                if((j + 1)*asciiw < w && k + i*asciih < h)tmpImage(k + i*asciih, (j + 1)*asciiw, 0) = 255;
+            }
+            for(int k = 0; k < asciiw; k++) {
+                if(k + j*asciiw < w) tmpImage(i*asciih, k + j*asciiw, 0) = 255;
+                if((i + 1)*asciih < h && k + j*asciiw < w)tmpImage((i + 1)*asciih, k + j*asciiw, 0) = 255;
+            }
+        }
         for(int i = 0; i < h; i++) {
             for(int j = 0; j < w; j++) {
                 tmpImage(i, j, 3) = 255;
-                tmpImage(i, j, 2) = 255*(tmpMat2d(i, j) > 0); // blue: line removed
+                if(tmpMat2d(i, j) > 0) tmpImage(i, j, 2) = 255; // blue: line removed
             }
         }
         tmpMat2d.setConstant(0);
@@ -511,7 +597,7 @@ int main(int argc, char * argv[]) {
         }
         for(int i = 0; i < h; i++) {
             for(int j = 0; j < w; j++) {
-                tmpImage(i, j, 0) = 255*(tmpMat2d(i, j) > 0); //red: line exist
+                if(tmpMat2d(i, j) > 0) tmpImage(i, j, 0) = 255; //red: line exist
             }
         }
         tmpMat2d.setConstant(0);
@@ -556,9 +642,20 @@ int main(int argc, char * argv[]) {
         }
 
 #ifdef DEBUG_WITH_TMP_IMAGE
+        for(const auto & p: needCalc) {
+            int i = p.first, j = p.second;
+            for(int k = 0; k < asciih; k++) {
+                if(i*asciih + k < h) tmpImage(i*asciih + k, j*asciiw, 1) = 255;
+                if((j + 1)*asciiw < w && k + i*asciih < h)tmpImage(k + i*asciih, (j + 1)*asciiw, 1) = 255;
+            }
+            for(int k = 0; k < asciiw; k++) {
+                if(k + j*asciiw < w) tmpImage(i*asciih, k + j*asciiw, 1) = 255;
+                if((i + 1)*asciih < h && k + j*asciiw < w)tmpImage((i + 1)*asciih, k + j*asciiw, 1) = 255;
+            }
+        }
         for(int i = 0; i < h; i++) {
             for(int j = 0; j < w; j++) {
-                tmpImage(i, j, 1) = 255*(tmpMat2d(i, j) > 0); // green: line drawed
+                if(tmpMat2d(i, j) > 0) tmpImage(i, j, 1) = 255; // green: line drawed
             }
         }
         if(toChange.second == 0) {
@@ -567,10 +664,11 @@ int main(int argc, char * argv[]) {
             drawSegmentDirect(tmpMat2d, t, 255);
             for(int i = 0; i < h; i++) {
                 for(int j = 0; j < w; j++) {
-                    if(tmpMat2d(i, j) < 1) continue;
-                    tmpImage(i, j, 0) = 135*(tmpMat2d(i, j) > 0);
-                    tmpImage(i, j, 1) = 206*(tmpMat2d(i, j) > 0);
-                    tmpImage(i, j, 2) = 235*(tmpMat2d(i, j) > 0);
+                    if(tmpMat2d(i, j) > 0) {
+                        tmpImage(i, j, 0) = 135;
+                        tmpImage(i, j, 1) = 206;
+                        tmpImage(i, j, 2) = 235;
+                    }
                 }
             }
         }
@@ -580,10 +678,11 @@ int main(int argc, char * argv[]) {
             drawSegmentDirect(tmpMat2d, t, 255);
             for(int i = 0; i < h; i++) {
                 for(int j = 0; j < w; j++) {
-                    if(tmpMat2d(i, j) < 1) continue;
-                    tmpImage(i, j, 0) = 135*(tmpMat2d(i, j) > 0);
-                    tmpImage(i, j, 1) = 206*(tmpMat2d(i, j) > 0);
-                    tmpImage(i, j, 2) = 235*(tmpMat2d(i, j) > 0);
+                    if(tmpMat2d(i, j) > 0) {
+                        tmpImage(i, j, 0) = 135;
+                        tmpImage(i, j, 1) = 206;
+                        tmpImage(i, j, 2) = 235;
+                    }
                 }
             }
         }
@@ -675,7 +774,7 @@ int main(int argc, char * argv[]) {
 
                 double calcedDeform;
                 try{
-                    calcedDeform = eg::math::calcDeform(before, after, segs, originalSegs);
+                    calcedDeform = eg::math::calcDeform(before, after, segs, originalSegs, candidates[i][j][k]);
                     deform += l*calcedDeform;
                 }
                 catch (const eg::exceptions::InvalidParameter &) {
@@ -736,7 +835,7 @@ int main(int argc, char * argv[]) {
                 if(++co >= 5000) break;
                 const double delta = prevE - E;
                 const double t = 0.2*ta*std::pow(c, 0.997);
-                Pr = std::exp(-10*std::abs(delta)/t);
+                Pr = std::exp(-std::abs(delta)/t);
                 if(delta < -20) Pr = 15; // force reset
                 ran = (double)mt()/INF;
                 prevE = E;

@@ -46,3 +46,6 @@ add_executable(morph-gray morph-gray.cpp)
 target_link_libraries(morph-gray eg)
 target_include_directories(morph-gray PRIVATE ../../lib/eg)
 
+add_executable(access access.cpp)
+target_link_libraries(access eg)
+target_include_directories(access PRIVATE ../../lib/eg)

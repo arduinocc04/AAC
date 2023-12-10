@@ -157,10 +157,10 @@ Segment eg::tool::clip(const Segment & s, const std::pair<int, int> & lu, const 
         else {
             int outcodeOut = (outcode1 > outcode0)?outcode1:outcode0;
             int x, y;
-            int x0 = s.first.first;
-            int y0 = s.first.second;
-            int x1 = s.second.first;
-            int y1 = s.second.second;
+            int x0 = ans.first.first;
+            int y0 = ans.first.second;
+            int x1 = ans.second.first;
+            int y1 = ans.second.second;
             int xmax = real_rd.first;
             int xmin = lu.first;
             int ymax = real_rd.second;

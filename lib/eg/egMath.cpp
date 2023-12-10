@@ -168,7 +168,7 @@ double calcDeformAngle(const Segment & a, const Segment & b) {
 }
 
 double calcDeformLength(const Segment & a, const Segment & b) {
-    const double lambda = (double)2/15;
+    const double lambda = (double)2/16;
     const double delta = 0.5;
 
     const double r = eg::geo::euclideDist(a.first, a.second);
@@ -193,43 +193,43 @@ double eg::math::calcDeformLocal(const Segment & before, const Segment & after) 
     return std::max(t, tt);
 }
 
+bool contained(double s1, double e1, double s2, double e2) {
+    return s1 < s2 && e2 < e1;
+}
+
 /**
  * @attention this implementation isn't same in the paper.
  */
-double eg::math::calcAccess(const Segment & before, const Segment & after, const Segments & ss, const Segments & original) {
+double eg::math::calcAccess(const Segment & before, const Segment & after, const Segments & ss, const Segments & original, const std::vector<int> & candidates) {
     Vec2 u = before.second - before.first;
     Dot mid = before.first + u/2;
 	u = after.second - after.first;
     Dot midAfter = after.first + u/2;
 
-    std::vector<std::pair<double, int>> calced;
-    for(int i = 0; i < original.size(); i++) {
-        double dist = eg::geo::distSegDot(original[i], mid);
-        if(dist == 0) continue;
-		if(eg::geo::distSegDot(ss[i], midAfter) == 0) continue;
-        calced.push_back(std::make_pair(dist, i));
-    }
-    std::sort(calced.begin(), calced.end());
-    std::vector<std::pair<double, double>> used;
-    std::vector<int> candidates;
-    for(int j = 0; j < calced.size(); j++) {
-        int i = calced[j].second;
-        double startAngle, endAngle;
-        startAngle = std::atan2(original[i].first.second - mid.second, original[i].first.first - mid.first) + M_PI;
-        endAngle = std::atan2(original[i].second.second - mid.second, original[i].second.first - mid.first) + M_PI;
-        if(startAngle > endAngle) {
-            double tmp = startAngle;
-            startAngle = endAngle;
-            endAngle = tmp;
-        }
+    // std::vector<std::pair<double, int>> calced;
+    // for(int i = 0; i < original.size(); i++) {
+    //     double dist = eg::geo::distSegDot(original[i], mid);
+    //     if(dist == 0) continue;
+	// 	if(eg::geo::distSegDot(ss[i], midAfter) == 0) continue;
+    //     calced.push_back(std::make_pair(dist, i));
+    // }
+    // std::sort(calced.begin(), calced.end());
+    // std::vector<std::pair<double, double>> used;
+    // std::vector<int> candidates;
+    // for(int j = 0; j < calced.size(); j++) {
+    //     int i = calced[j].second;
+    //     double startAngle, endAngle;
+    //     startAngle = std::atan2(original[i].first.second - mid.second, original[i].first.first - mid.first) + M_PI;
+    //     endAngle = std::atan2(original[i].second.second - mid.second, original[i].second.first - mid.first) + M_PI;
+    //     if(startAngle > endAngle) endAngle += 2*M_PI;
 
-        bool insert = true;
-        for(int k = 0; k < used.size(); k++) {
-            if(used[k].first <= startAngle && endAngle <= used[k].second) {
-                insert = false;
-                break;
-            }
-        }
+    //     bool insert = true;
+    //     for(int k = 0; k < used.size(); k++) {
+    //         if(contained(used[i].first, used[k].second, startAngle, endAngle)) {
+    //             insert = false;
+    //             break;
+    //         }
+    //     }
 
         /*
         int dddddddd = used.size();
@@ -241,25 +241,25 @@ double eg::math::calcAccess(const Segment & before, const Segment & after, const
             std::cout << "used before====" <<  std::endl;
         } */
 
-        std::vector<int> toRemove;
-        if(insert) {
-            candidates.push_back(i);
+        // std::vector<int> toRemove;
+        // if(insert) {
+        //     candidates.push_back(i);
 
-            double l = startAngle;
-            double r = endAngle;
-            for(int k = 0; k < used.size(); k++) { // merge overlapped intervals
-                double tl = used[k].first, tr = used[k].second;
-                if((tl <= l && l <= tr) || (tl <= r && r <= tr) || (l <= tl && tl <= r) || (l <= tr && tr <= r)) {
-                        toRemove.push_back(k);
-                        l = std::min(tl, l);
-                        r = std::max(tr, r);
-                }
-            }
-            used.push_back(std::make_pair(l, r));
-            for(int k = 0; k < toRemove.size(); k++) {
-                used.erase(used.begin() + toRemove[k] - k);
-            }
-        }
+        //     double l = startAngle;
+        //     double r = endAngle;
+        //     for(int k = 0; k < used.size(); k++) { // merge overlapped intervals
+        //         double tl = used[k].first, tr = used[k].second;
+        //         if((tl <= l && l <= tr) || (tl <= r && r <= tr) || (l <= tl && tl <= r) || (l <= tr && tr <= r)) {
+        //                 toRemove.push_back(k);
+        //                 l = std::min(tl, l);
+        //                 r = std::max(tr, r);
+        //         }
+        //     }
+        //     used.push_back(std::make_pair(l, r));
+        //     for(int k = 0; k < toRemove.size(); k++) {
+        //         used.erase(used.begin() + toRemove[k] - k);
+        //     }
+        // }
         /*
         if(toRemove.size()) {
             std::cout << "used after======" << std::endl;
@@ -269,8 +269,8 @@ double eg::math::calcAccess(const Segment & before, const Segment & after, const
             }
             std::cout << "used after====" <<  std::endl;
         } */
-    }
-
+    // }
+    
     double lengthSum = 0;
     for(int j = 0; j < candidates.size(); j++) {
         int i = candidates[j];
@@ -327,11 +327,11 @@ double eg::math::calcAccess(const Segment & before, const Segment & after, const
     return res;
 }
 
-double eg::math::calcDeform(const Segment & before, const Segment & after, const Segments & ss, const Segments & original) {
+double eg::math::calcDeform(const Segment & before, const Segment & after, const Segments & ss, const Segments & original, const std::vector<int> & candidates) {
     if(eg::geo::euclideDist(after.first, after.second) < 1e-8) throw eg::exceptions::InvalidParameter();
     if(eg::geo::euclideDist(before.first, before.second) < 1e-8) throw eg::exceptions::InvalidParameter();
     double t = calcDeformLocal(before, after);
-    double tt = calcAccess(before, after, ss, original);
+    double tt = calcAccess(before, after, ss, original, candidates);
     // std::cout << "LO " << t << " ACC " << tt << std::endl;
     double c = std::max(t, tt);
     if(c != c) throw eg::exceptions::InvalidParameter();
