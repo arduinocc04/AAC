@@ -20,8 +20,6 @@ Paths eg::tool::Mat2dToBorders(const Eigen::Tensor<int, 2> & ans, int nbd, int h
     const int dx8ccw[] = {-1, -1, 0, 1, 1, 1, 0, -1};
     const int dy8ccw[] = {0, -1, -1, -1, 0, 1, 1, 1};
     Paths borders;
-    borders.push_back({});
-    borders.push_back({});
     std::vector<bool> calced(nbd);
     std::vector<std::vector<bool>> used(h);
     for(int i = 0; i < h; i++)
@@ -49,6 +47,7 @@ Paths eg::tool::Mat2dToBorders(const Eigen::Tensor<int, 2> & ans, int nbd, int h
                         continue;
                     if(abs(ans(tx, ty)) == cnbd) {
                         q.push(std::make_pair(tx, ty));
+                        used[tx][ty] = true;
                         last = k;
                         break;
                     }
@@ -58,8 +57,8 @@ Paths eg::tool::Mat2dToBorders(const Eigen::Tensor<int, 2> & ans, int nbd, int h
                     res.push_back(tmp);
                     q.pop();
                     for(int k = 0; k < 8; k++) {
-                        int tx = tmp.first + dx8ccw[k];
-                        int ty = tmp.second + dy8ccw[k];
+                        int tx = tmp.first + dx8ccw[(k + 3) % 8];
+                        int ty = tmp.second + dy8ccw[(k + 3) % 8];
                         if(tx < 0 || tx >= h || ty < 0 || ty >= w || used[tx][ty])
                             continue;
                         if(abs(ans(tx, ty)) == cnbd) {
@@ -92,8 +91,8 @@ Paths eg::tool::Mat2dToBorders(const Eigen::Tensor<int, 2> & ans, int nbd, int h
                         res.push_back(tmp);
                         q.pop();
                         for(int k = 0; k < 8; k++) {
-                            int tx = tmp.first + dx8ccw[k];
-                            int ty = tmp.second + dy8ccw[k];
+                            int tx = tmp.first + dx8ccw[(k + 3) % 8];
+                            int ty = tmp.second + dy8ccw[(k + 3) % 8];
                             if(tx < 0 || tx >= h || ty < 0 || ty >= w || used[tx][ty])
                                 continue;
                             if(abs(ans(tx, ty)) == cnbd) {
@@ -104,6 +103,7 @@ Paths eg::tool::Mat2dToBorders(const Eigen::Tensor<int, 2> & ans, int nbd, int h
                         }
                     }
                 }
+                // std::reverse(res.begin(), res.end());// this will change order to counter clock wise.
                 borders.push_back(res);
             }
         }

@@ -292,6 +292,13 @@ std::pair<Paths, std::vector<int>> getContourSuzuki(const Mat2d & bin) {
             if(ans(i, j) != 1) lnbd = abs(ans(i, j));
         } // for j
     } // for i
+    for(int i = 0; i < ans.dimensions()[0]; i++) {
+        for(int j = 0; j < ans.dimensions()[1]; j++) {
+            std::cout << ans(i, j) << " ";
+        }
+        std::cout << "\n";
+    }
+    std::cout << std::endl;
     Paths borders = eg::tool::Mat2dToBorders(ans, nbd, h, w);
     return std::make_pair(borders, p);
 }

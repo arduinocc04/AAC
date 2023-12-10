@@ -22,8 +22,8 @@
 #define INF 987654321
 #define THREAD_CNT 4
 
-// #define DEBUG_WITH_TMP_IMAGE
-// #define DEBUG_WITH_DECOM_IMAGE
+#define DEBUG_WITH_TMP_IMAGE
+#define DEBUG_WITH_DECOM_IMAGE
 
 using namespace eg::imgproc;
 namespace fs = std::filesystem;
@@ -109,8 +109,22 @@ std::pair<int, int> getChanged(const std::pair<int, int> & coord, const std::pai
 }
 
 void updateLine(const std::pair<int, int> & toChange, int dx, int dy, Segments & segs, Paths & paths) {
-    paths.at(toChange.first).at(toChange.second).first += dx;
-    paths.at(toChange.first).at(toChange.second).second += dy;
+    if(toChange.second == 0 && paths[toChange.first][0] == paths[toChange.first][paths[toChange.first].size() - 1]) {
+        paths.at(toChange.first).at(0).first += dx;
+        paths.at(toChange.first).at(0).second += dy;
+        paths[toChange.first][paths[toChange.first].size() - 1].first += dx;
+        paths[toChange.first][paths[toChange.first].size() - 1].second += dy;
+    }
+    else if(toChange.second == paths[toChange.first].size() - 1 && paths[toChange.first][0] == paths[toChange.first][paths[toChange.first].size() - 1]) {
+        paths[toChange.first][0].first += dx;
+        paths[toChange.first][0].second += dy;
+        paths[toChange.first][paths[toChange.first].size() - 1].first += dx;
+        paths[toChange.first][paths[toChange.first].size() - 1].second += dy;
+    }
+    else {
+        paths.at(toChange.first).at(toChange.second).first += dx;
+        paths.at(toChange.first).at(toChange.second).second += dy;
+    }
 
     // std::cout << "HI" << std::endl;
     int ssss = 0;
@@ -119,10 +133,18 @@ void updateLine(const std::pair<int, int> & toChange, int dx, int dy, Segments &
     if(toChange.second == 0) {
         segs.at(ssss + toChange.second).first.first += dx;
         segs.at(ssss + toChange.second).first.second += dy;
+        if(paths[toChange.first][0] == paths[toChange.first][paths[toChange.first].size() - 1]) {
+            segs[ssss + paths[toChange.first].size() - 1].second.first += dx;
+            segs[ssss + paths[toChange.first].size() - 1].second.second += dy;
+        }
     }
     else if(toChange.second == paths[toChange.first].size() - 1) {
         segs[ssss + toChange.second - 1].second.first += dx;
         segs[ssss + toChange.second - 1].second.second += dy;
+        if(paths[toChange.first][0] == paths[toChange.first][paths[toChange.first].size() - 1]) {
+            segs[ssss].second.first += dx;
+            segs[ssss].second.second += dy;
+        }
     }
     else {
         segs.at(ssss + toChange.second - 1).second.first += dx;
@@ -256,12 +278,24 @@ int main(int argc, char * argv[]) {
     std::cout << "Opening input image" << std::endl;
     inputImage.openImage(inputImagePath);
     Image i = inputImage.copy();
+    for(int j = 0; j < i.dimensions()[0]; j++) {
+        for(int k = 0; k < i.dimensions()[1]; k++) {
+            std::cout << "/";
+            for(int l = 0; l < i.dimensions()[2]; l++) {
+                std::cout << (int)i(j, k, l) << " ";
+            }
+        }
+        std::cout << "\n";
+    }
+    std::cout << std::endl;
     std::cout << "Converting input image gray" << std::endl;
     Mat2d t = cvtGray(i, eg::grayCvtMethod::mean);
+    print(t);
     std::cout << "Getting Edge of input image" << std::endl;
     t = getEdge(t, eg::edgeDetectMethod::gradient);
 
     t = markOutlier(t, 10);
+    print(t);
     t = dilate(t, 1, 3);
     t = erode(t, 1, 3);
     t = dilate(t, 3, 1);
@@ -272,17 +306,21 @@ int main(int argc, char * argv[]) {
     auto contours = getContours(t, eg::contourMethod::suzuki);
 
     Segments segs;
+    // for(int i = 0; i < contours.first[9].size(); i++) {
+    //     std::cout << contours.first[9][i].first << " " << contours.first[9][i].second << std::endl;
+    // }
     std::cout << "Merging contours" << std::endl;
-    Paths paths(contours.first.size());
-    int k = 0;
-    for(int i = 2; i < contours.first.size(); i++) {
+    Paths paths;
+    for(int i = 0; i < contours.first.size(); i++) {
         if(contours.first[i].size() == 0) continue;
         Path tmp = eg::trace::approxPath(contours.first[i]);
-        if(tmp.size() > 4)
-            paths[k++] = tmp;
+        paths.push_back(tmp);
         for(int j = 1; j < tmp.size(); j++)
             segs.push_back(std::make_pair(tmp[j - 1], tmp[j]));
     }
+    // for(int i = 0; i < paths[9].size(); i++) {
+    //     std::cout << paths[9][i].first << " " << paths[9][i].second << std::endl;
+    // }
     Segments originalSegs = segs;
     Paths originalPaths = paths;
 
@@ -295,8 +333,6 @@ int main(int argc, char * argv[]) {
     char devnull[10];
 
     std::cout << "segs size: " << segs.size() << std::endl;
-
-    std::cout << "not DEFORM " << eg::math::calcDeform(segs[0], segs[0], segs, originalSegs) << std::endl;
 
     std::cout << "Decomposing lines into grids.." << std::endl;
     ArrayMat<SegWithOri> linesPerGrid(grCnt);
