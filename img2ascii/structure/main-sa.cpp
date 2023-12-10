@@ -284,24 +284,24 @@ int main(int argc, char * argv[]) {
     std::cout << "Opening input image" << std::endl;
     inputImage.openImage(inputImagePath);
     Image i = inputImage.copy();
-    for(int j = 0; j < i.dimensions()[0]; j++) {
-        for(int k = 0; k < i.dimensions()[1]; k++) {
-            std::cout << "/";
-            for(int l = 0; l < i.dimensions()[2]; l++) {
-                std::cout << (int)i(j, k, l) << " ";
-            }
-        }
-        std::cout << "\n";
-    }
-    std::cout << std::endl;
+    // for(int j = 0; j < i.dimensions()[0]; j++) {
+    //     for(int k = 0; k < i.dimensions()[1]; k++) {
+    //         std::cout << "/";
+    //         for(int l = 0; l < i.dimensions()[2]; l++) {
+    //             std::cout << (int)i(j, k, l) << " ";
+    //         }
+    //     }
+    //     std::cout << "\n";
+    // }
+    // std::cout << std::endl;
     std::cout << "Converting input image gray" << std::endl;
     Mat2d t = cvtGray(i, eg::grayCvtMethod::mean);
-    print(t);
+    // print(t);
     std::cout << "Getting Edge of input image" << std::endl;
     t = getEdge(t, eg::edgeDetectMethod::gradient);
 
     t = markOutlier(t, 50);
-    print(t);
+    // print(t);
     t = dilate(t, 1, 3);
     t = erode(t, 1, 3);
     t = dilate(t, 3, 1);
@@ -800,7 +800,7 @@ int main(int argc, char * argv[]) {
                 K++;
                 --KMinused;
                 buffer[i][j] = getAsciiFromPath(names[minIndex])[0];
-                errCell(i, j) = deform*minVal;
+                errCell(i, j) = 0.1*deform*minVal;
             }
         }
 
@@ -828,6 +828,7 @@ int main(int argc, char * argv[]) {
             for(int i = 0; i < grCnt; i++)
                 for(int j = 0; j < gcCnt; j++)
                     best[i][j] = buffer[i][j];
+            c++;
         }
         else {
             double Pr, ran;
