@@ -15,6 +15,9 @@
 #define x first
 #define y second
 
+/**
+ * @todo Implement correctly. Segment a[a.size() - 1] -- a[0] may needed.
+ */
 Segments approxPathGreedy(const Path & a) {
     Segments ans;
     int startIdx = 0;
@@ -45,7 +48,8 @@ Segments approxPathGreedy(const Path & a) {
 Path eg::trace::approxPath(const Path & a) {
     Path ans;
     int startIdx = 0;
-    const double THRESHOLD = 5;
+    const double THRESHOLD = 4;
+    if(a.size() <= 1) return ans;
     for(int i = 1; i < a.size(); i++) {
         bool flag = true;
         Segment tmp = std::make_pair(a[startIdx], a[i]);
@@ -65,6 +69,10 @@ Path eg::trace::approxPath(const Path & a) {
     if(eg::geo::euclideDist(a[startIdx], a[a.size() - 1]) >= THRESHOLD) {
         ans.push_back(a[startIdx]);
         ans.push_back(a[a.size() - 1]);
+    }
+    if(eg::geo::euclideDist(a[a.size() - 1], a[0]) < 1.5) {
+        ans.pop_back();
+        ans.push_back(a[0]);
     }
     return ans;
 }

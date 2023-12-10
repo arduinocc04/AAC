@@ -21,8 +21,11 @@ We didn't use image processing library such as OpenCV because using libpng was m
 
 # How to use
 1. `./install.sh`
-2. To use structure-based ascii art, move to build directory and `img2ascii/structure/structure ASCII_FOLDER_NAME INPUT.png`
-3. To use tone-based ascii art, move to build directory and `img2ascii/tone/tone INPUT.png`
+2. To use structure-based ascii art, move to build directory and `img2ascii/structure/structure ASCII_FOLDER_NAME INPUT.png SCALE_RATIO`
+3. To use structure-based ascii art with simulated annealing optimization , move to build directory and `img2ascii/structure/sa-structure ASCII_FOLDER_NAME INPUT.png`
+4. To use tone-based ascii art, move to build directory and `img2ascii/tone/tone INPUT.png`
+## Attention
+structure-based ascii art with simulated annealing optimization(`main-sa.cpp`) has some debug features. To disable that features, undefine `DEBUG-*`.
 ## Example
 `cd build && img2ascii/structure/structure non-hangul-images INPUT.png`  
 If you used `install.sh`, `non-hangul-images` will be inside your build directory.
