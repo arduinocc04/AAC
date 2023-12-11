@@ -20,13 +20,15 @@ We didn't use image processing library such as OpenCV because using libpng was m
 # eg
 - `eg` is our library. It does - png format image handling, image processing
 ## Implemented
-- monotone chain(convex hull)\[2\]
-- grassfire transform\[3\]
+- *monotone chain(convex hull)\[2\]
+- *grassfire transform\[3\]
 - image comparision based on log-polar transform\[4\] and Bhattacharya distance\[5\]. It's influenced by the paper structure-based ascii art\[1\].
 - Suzuki's topological structural analysis\[6\]
 - basic image tracing
 - Bresenham's line algorithm\[7\]
 - Cohen–Sutherland algorithm(line clipping)\[8\]
+  
+An asterisk(*) means It didn't used while converting image to ascii art.
 
 # Documentation
 - We used doxygen for documentation.
