@@ -71,7 +71,7 @@ Path eg::trace::approxPath(const Path & a) {
         ans.push_back(a[a.size() - 1]);
     }
     if(eg::geo::euclideDist(a[a.size() - 1], a[0]) < 1.5) {
-        ans.pop_back();
+        if(ans.size()) ans.pop_back();
         ans.push_back(a[0]);
     }
     return ans;
