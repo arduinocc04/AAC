@@ -25,3 +25,4 @@ tools/ascii2image/*
 *.snm
 *.toc
 *.vrb
+report/IEEEtran.cls
